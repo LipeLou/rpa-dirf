@@ -1,0 +1,310 @@
+═══════════════════════════════════════════════════════════════════════════════
+                            COMANDOS ÚTEIS
+═══════════════════════════════════════════════════════════════════════════════
+
+📦 INSTALAÇÃO
+═════════════
+
+# Setup automático (recomendado)
+./setup.sh
+
+# Instalar dependências manualmente
+pip install -r requirements.txt
+
+# Instalar ChromeDriver (Ubuntu/Debian)
+sudo apt-get update
+sudo apt-get install chromium-chromedriver
+
+# Verificar se ChromeDriver está instalado
+which chromedriver
+chromedriver --version
+
+# Criar ambiente virtual (opcional)
+python3 -m venv venv
+source venv/bin/activate
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🚀 EXECUTAR APLICAÇÃO
+═════════════════════
+
+# Iniciar servidor Flask
+python app.py
+
+# Iniciar servidor em modo debug
+python app.py
+
+# Acessar no navegador
+http://localhost:5000
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🧪 EXECUTAR TESTES
+══════════════════
+
+# Testes básicos do Selenium
+python test_selenium.py
+
+# Testes avançados
+python test_avancado.py
+
+# Executar teste específico (edite o arquivo e descomente)
+python -c "from test_selenium import test_cadastro_completo; test_cadastro_completo()"
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🗄️  GERENCIAR BANCO DE DADOS
+═════════════════════════════
+
+# Interface interativa
+python gerenciar_db.py
+
+# Acessar banco diretamente via SQLite
+sqlite3 devs.db
+
+# Ver todas as tabelas
+sqlite3 devs.db ".tables"
+
+# Ver todos os cadastros
+sqlite3 devs.db "SELECT * FROM cadastros;"
+
+# Contar cadastros
+sqlite3 devs.db "SELECT COUNT(*) FROM cadastros;"
+
+# Ver últimos 5 cadastros
+sqlite3 devs.db "SELECT * FROM cadastros ORDER BY id DESC LIMIT 5;"
+
+# Deletar todos os dados
+sqlite3 devs.db "DELETE FROM cadastros;"
+
+# Backup do banco
+cp devs.db devs_backup_$(date +%Y%m%d).db
+
+# Sair do SQLite
+.quit
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🔍 DEBUGGING
+════════════
+
+# Ver processos rodando na porta 5000
+sudo lsof -i :5000
+
+# Matar processo na porta 5000
+sudo kill -9 $(lsof -t -i:5000)
+
+# Ver logs do Flask (já aparecem no terminal)
+python app.py
+
+# Testar se o servidor está respondendo
+curl http://localhost:5000
+
+# Ver versão do Python
+python --version
+
+# Ver pacotes instalados
+pip list
+
+# Ver informações sobre Flask
+pip show flask
+
+# Ver informações sobre Selenium
+pip show selenium
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📊 ANÁLISE DE DADOS
+═══════════════════
+
+# Exportar dados para CSV (via script Python)
+python gerenciar_db.py
+# Escolha opção 5
+
+# Contar por senioridade
+sqlite3 devs.db "SELECT senioridade, COUNT(*) FROM cadastros GROUP BY senioridade;"
+
+# Contar por lado de desenvolvimento
+sqlite3 devs.db "SELECT lado_dev, COUNT(*) FROM cadastros GROUP BY lado_dev;"
+
+# Buscar por email
+sqlite3 devs.db "SELECT * FROM cadastros WHERE email LIKE '%@gmail.com';"
+
+# Ver últimos cadastrados hoje
+sqlite3 devs.db "SELECT * FROM cadastros WHERE date(data_cadastro) = date('now');"
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🛠️  MANUTENÇÃO
+══════════════
+
+# Atualizar dependências
+pip install --upgrade flask selenium
+
+# Verificar problemas com dependências
+pip check
+
+# Gerar novo requirements.txt
+pip freeze > requirements.txt
+
+# Limpar cache Python
+find . -type d -name "__pycache__" -exec rm -r {} +
+find . -type f -name "*.pyc" -delete
+
+# Limpar screenshots de teste
+rm -f *.png
+
+# Limpar CSVs exportados
+rm -f cadastros_*.csv
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🔧 GIT (se você inicializar um repositório)
+════════════════════════════════════════════
+
+# Inicializar repositório
+git init
+
+# Adicionar arquivos
+git add .
+
+# Fazer commit
+git commit -m "Initial commit - Projeto Selenium"
+
+# Ver status
+git status
+
+# Ver histórico
+git log --oneline
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📝 SCRIPTS PERSONALIZADOS
+═════════════════════════
+
+# Criar script de teste customizado
+cat > meu_teste.py << 'EOF'
+from test_avancado import FormularioTester
+
+tester = FormularioTester()
+tester.abrir_formulario()
+tester.preencher_nome_completo("Seu", "Nome")
+# ... adicione mais ações
+tester.fechar()
+EOF
+
+python meu_teste.py
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🌐 REDE E PORTAS
+════════════════
+
+# Ver todas as portas em uso
+sudo netstat -tulpn
+
+# Testar conectividade
+ping localhost
+
+# Ver IP local
+hostname -I
+
+# Testar URL com curl
+curl -I http://localhost:5000
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🔐 PERMISSÕES
+═════════════
+
+# Tornar script executável
+chmod +x setup.sh
+chmod +x *.sh
+
+# Ver permissões dos arquivos
+ls -la
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📦 DESINSTALAÇÃO
+════════════════
+
+# Desinstalar pacotes
+pip uninstall flask selenium -y
+
+# Remover ambiente virtual
+deactivate  # se estiver ativo
+rm -rf venv/
+
+# Remover banco de dados
+rm devs.db
+
+# Remover tudo exceto código fonte
+rm -f *.db *.png cadastros_*.csv
+
+═══════════════════════════════════════════════════════════════════════════════
+
+⚡ ATALHOS RÁPIDOS
+══════════════════
+
+# Terminal 1: Servidor
+python app.py &
+
+# Terminal 2: Teste rápido
+python test_selenium.py
+
+# Parar servidor (se rodando em background)
+pkill -f "python app.py"
+
+# Rodar em background com log
+nohup python app.py > app.log 2>&1 &
+
+# Ver log em tempo real
+tail -f app.log
+
+═══════════════════════════════════════════════════════════════════════════════
+
+🎯 COMANDOS SELENIUM NO PYTHON INTERATIVO
+═════════════════════════════════════════
+
+python
+>>> from selenium import webdriver
+>>> from selenium.webdriver.common.by import By
+>>> driver = webdriver.Chrome()
+>>> driver.get("http://localhost:5000")
+>>> driver.find_element(By.ID, "nome").send_keys("Teste")
+>>> driver.quit()
+
+═══════════════════════════════════════════════════════════════════════════════
+
+📚 DOCUMENTAÇÃO RÁPIDA
+══════════════════════
+
+# Abrir documentação local
+cat README.md
+cat CONCEITOS.md
+cat INICIO_RAPIDO.md
+
+# Ver estrutura do projeto
+tree -L 2
+# ou
+find . -type f | grep -v __pycache__
+
+═══════════════════════════════════════════════════════════════════════════════
+
+💡 DICAS
+════════
+
+• Sempre inicie o servidor antes dos testes
+• Use Ctrl+C para parar o servidor
+• Ctrl+Z + bg para colocar em background
+• Use 'fg' para trazer de volta ao foreground
+• Screenshots são salvos no diretório atual
+• O banco .db pode ser deletado para começar limpo
+• Use gerenciar_db.py para operações no banco
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Salve este arquivo para referência rápida! 📌
+
+
