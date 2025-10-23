@@ -7,10 +7,19 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
+from webdriver_manager.chrome import ChromeDriverManager
 import time
 from time import sleep
 import pandas as pd
 import sqlite3
+import platform
+import os
+import sys
+
+# Configurar encoding UTF-8 para Windows
+if platform.system() == "Windows":
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
 
 # Configurações fixas
 url_base = 'http://www3.cav.receita.fazenda.gov.br/reinfweb/#/home'
@@ -241,12 +250,33 @@ class EFDTestRunner:
     def setup_driver(self):
         """Configura e cria o driver do Chrome"""
         chrome_options = Options()
-        chrome_options.binary_location = "/usr/bin/chromium-browser"
+        
+        # Detectar sistema operacional e configurar adequadamente
+        sistema = platform.system()
+        print(f"🖥️ Sistema operacional detectado: {sistema}")
+        
+        if sistema == "Linux":
+            # Configuração para Linux
+            chrome_options.binary_location = "/usr/bin/chromium-browser"
+            chrome_options.add_argument('--user-data-dir=/tmp/selenium_chrome_profile')
+        
+        # Argumentos comuns para todos os sistemas
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--user-data-dir=/tmp/selenium_chrome_profile')
         
-        self.driver = webdriver.Chrome(options=chrome_options)
+        # Selenium 4.6+ tem Selenium Manager integrado que gerencia drivers automaticamente
+        print("🔄 Configurando ChromeDriver com Selenium Manager...")
+        try:
+            # Não precisa especificar service - Selenium Manager cuida disso automaticamente
+            self.driver = webdriver.Chrome(options=chrome_options)
+            print("✅ ChromeDriver configurado com sucesso!")
+        except Exception as e:
+            print(f"❌ Erro ao configurar ChromeDriver: {str(e)}")
+            print("💡 Tentando com webdriver-manager...")
+            # Fallback para webdriver-manager se o Selenium Manager falhar
+            service = Service(ChromeDriverManager().install())
+            self.driver = webdriver.Chrome(service=service, options=chrome_options)
+            print("✅ ChromeDriver configurado com webdriver-manager!")
     
     def close_driver(self):
         """Fecha o driver"""
