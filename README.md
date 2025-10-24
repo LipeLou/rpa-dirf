@@ -4,12 +4,31 @@ Sistema para auxiliar no preenchimento de formulários EFD-REINF da Receita Fede
 
 ## 🚀 Início Rápido
 
+### Windows:
 ```bash
-# 1. Ativar ambiente virtual
-.\venv\Scripts\Activate.ps1
+# Opção 1: Executar diretamente (RECOMENDADO)
+.\executar.bat
 
-# 2. Executar assistente
-python main.py
+# Opção 2: Ativar ambiente e executar
+.\ativar_venv.bat
+python automacao_efd.py
+
+# Opção 3: Manual (se PowerShell bloquear)
+venv\Scripts\activate.bat
+python automacao_efd.py
+```
+
+**⚠️ IMPORTANTE:** No PowerShell, sempre use `.\` antes do nome do arquivo!
+
+### Linux/Mac:
+```bash
+# Opção 1: Script automático
+chmod +x ativar_venv.sh
+./ativar_venv.sh
+
+# Opção 2: Manual
+source venv/bin/activate
+python automacao_efd.py
 ```
 
 ## 📋 Pré-requisitos
@@ -22,14 +41,22 @@ python main.py
 ## ⚡ Como Funciona
 
 ### Sistema PREENCHE automaticamente:
+- **Processa TODOS os grupos** do Excel
+- **Pula automaticamente** CPFs já lançados
 - Data, CNPJ, CPF do Titular
 - CPF e Relação de cada Dependente
+- Planos de saúde e valores
 
 ### VOCÊ faz manualmente:
 - Login (certificado digital)
-- Navegação entre formulários
-- Adição de planos de saúde e valores
-- **Revisão e ENVIO** (controle total!)
+- Navegação até o formulário
+- **Sistema processa tudo automaticamente!**
+
+### Sistema de Checkpoint:
+- **Salva progresso** em banco SQLite
+- **Permite pausar e retomar**
+- **Evita reprocessar** CPFs já feitos
+- **Relatórios detalhados** de progresso
 
 ## 📊 Velocidade
 
@@ -37,30 +64,61 @@ python main.py
 - **Com assistente:** ~1.5 min/grupo ⚡
 - **Economia:** ~70% de tempo
 
+## 📊 Gerenciar Banco de Dados
+
+### Executar Gerenciador de Checkpoint
+
+**Windows:**
+```bash
+.\gerenciar_db.bat
+```
+
+**Ou manualmente:**
+```bash
+python gerenciar_checkpoint.py
+```
+
+### Funcionalidades do Gerenciador:
+
+1. **📋 Ver status geral** - Resumo do banco de dados
+2. **👤 Ver CPFs processados** - Lista todos os CPFs
+3. **🔍 Buscar CPF específico** - Detalhes de um CPF
+4. **📈 Ver estatísticas** - Análise detalhada
+5. **🗑️ Limpar dados** - Limpar banco ou CPF específico
+6. **📊 Exportar relatório** - Gerar Excel com todos os dados
+7. **🔄 Resetar progresso** - Permitir reprocessar um CPF
+
 ## 📁 Estrutura
 
 ```
 rpa-dirf/
-├── main.py              # Assistente principal (USE ESTE)
-├── dados.xlsx           # Planilha com dados
-├── requirements.txt     # Dependências
-├── app.py              # Servidor Flask (opcional)
-├── gerenciar_db.py     # Gerenciador de BD (opcional)
-└── venv/               # Ambiente virtual
+├── automacao_efd.py        # Automação principal
+├── gerenciar_checkpoint.py # Gerenciador de banco
+├── dados.xlsx              # Planilha com dados
+├── checkpoint_efd.db       # Banco de dados SQLite
+├── requirements.txt        # Dependências
+├── executar.bat           # Script Windows
+├── gerenciar_db.bat       # Gerenciador Windows
+└── venv/                  # Ambiente virtual
 ```
 
 ## 🔧 Configuração Inicial (Primeira Vez)
 
 ```bash
 # Criar ambiente virtual
-py -m venv venv
+python -m venv venv
 
-# Ativar
-.\venv\Scripts\Activate.ps1
+# Ativar (Windows)
+venv\Scripts\activate
+
+# Ativar (Linux/Mac)
+source venv/bin/activate
 
 # Instalar dependências
 pip install -r requirements.txt
 ```
+
+**✅ Ambiente virtual já configurado!** Todas as dependências foram instaladas.
 
 ## 💡 Dica
 
@@ -73,4 +131,4 @@ Após primeira execução, login pode ser automático!
 
 ---
 
-**Pronto para começar!** Execute `python main.py` 🚀
+**Pronto para começar!** Execute `python automacao_efd.py` 🚀

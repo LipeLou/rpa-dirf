@@ -1,36 +1,59 @@
-# Python
-__pycache__/
-*.py[cod]
-*.so
-.Python
-
-# Virtual Environment
+# Ambiente virtual
 venv/
 env/
 ENV/
 
-# IDEs
-.vscode/
-.idea/
+# Cache Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
 
-# OS
-.DS_Store
-Thumbs.db
+# Arquivos de configuração do Chrome
+chrome_efd/
+chrome_assistente/
 
-# Database
+# Banco de dados
 *.db
+*.sqlite
 *.sqlite3
+checkpoint_efd.db
+devs.db
 
 # Logs
 *.log
 
-# Chrome Profiles
-chrome_*/
-chrome_efd/
+# Screenshots de erro
+erro_efd_*.png
+erro_primeira_etapa_*.png
 
-# Screenshots
-*.png
-!templates/*.png
+# Relatórios exportados
+relatorio_checkpoint_*.xlsx
+visualizacao_checkpoint_*.xlsx
 
-# Results
-resultados_*.xlsx
+# Arquivos temporários
+*.tmp
+*.temp
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Arquivos de dados sensíveis (se houver)
+# dados.xlsx
+
+# Arquivos de documentação temporários
+*.md
+!README.md
+
+# Arquivos duplicados/antigos
+main.py
+app.py
+gerenciar_db.py
+templates/
