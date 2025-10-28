@@ -47,11 +47,11 @@ Thumbs.db
 *.swo
 
 # Arquivos de dados sensíveis (descomente se necessário)
- dados.xlsx
+dados.xlsx
 
 # Outros arquivos gerados pelo sistema
 *.bak
 *.orig
 
 # Arquivo de configuração personalizada (descomente para ignorar alterações locais)
- config.py
+config.py
