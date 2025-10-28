@@ -18,16 +18,17 @@ chrome_assistente/
 *.sqlite
 *.sqlite3
 checkpoint_efd.db
-devs.db
 
 # Logs
 *.log
 
-# Screenshots de erro
+# Screenshots de automação (gerados automaticamente)
+screenshot_*.png
+janelas_check_*.png
 erro_efd_*.png
 erro_primeira_etapa_*.png
 
-# Relatórios exportados
+# Relatórios exportados (gerados automaticamente)
 relatorio_checkpoint_*.xlsx
 visualizacao_checkpoint_*.xlsx
 
@@ -45,15 +46,12 @@ Thumbs.db
 *.swp
 *.swo
 
-# Arquivos de dados sensíveis (se houver)
-# dados.xlsx
+# Arquivos de dados sensíveis (descomente se necessário)
+ dados.xlsx
 
-# Arquivos de documentação temporários
-*.md
-!README.md
+# Outros arquivos gerados pelo sistema
+*.bak
+*.orig
 
-# Arquivos duplicados/antigos
-main.py
-app.py
-gerenciar_db.py
-templates/
+# Arquivo de configuração personalizada (descomente para ignorar alterações locais)
+ config.py

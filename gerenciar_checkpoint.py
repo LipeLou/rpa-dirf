@@ -10,10 +10,35 @@ import pandas as pd
 from datetime import datetime
 import os
 
-BANCO_DADOS = 'checkpoint_efd.db'
+# Importar configurações
+from config import BANCO_DADOS
 
 class GerenciadorCheckpoint:
+    """
+    Gerenciador completo de checkpoints para automação EFD-REINF.
+    
+    Esta classe fornece interface completa para visualizar, gerenciar e controlar
+    o progresso da automação através do banco de dados SQLite.
+    
+    Funcionalidades principais:
+    - Visualização de status geral e estatísticas
+    - Consulta detalhada de CPFs processados
+    - Exportação de relatórios em Excel
+    - Reset e alteração de checkpoints
+    - Limpeza seletiva de dados
+    - Geração de planilhas de visualização
+    
+    Attributes:
+        banco_dados (str): Caminho para o arquivo do banco SQLite
+    """
+    
     def __init__(self):
+        """
+        Inicializa o gerenciador de checkpoint.
+        
+        Configura a conexão com o banco de dados SQLite que armazena
+        todo o progresso da automação EFD-REINF.
+        """
         self.banco_dados = BANCO_DADOS
     
     def conectar_banco(self):
@@ -35,10 +60,8 @@ class GerenciadorCheckpoint:
         print("3. 🔍 Buscar CPF específico")
         print("4. 📈 Ver estatísticas")
         print("5. 🗑️ Limpar dados")
-        print("6. 📊 Exportar relatório")
-        print("7. 🔄 Resetar progresso de um CPF")
-        print("8. 📋 Gerar planilha de visualização")
-        print("9. 🔄 Resetar checkpoint de índice")
+        print("6. 📋 Gerar planilha de visualização")
+        print("7. ⚙️ Alterar checkpoint atual")
         print("0. ❌ Sair")
         print("="*60)
     
@@ -357,122 +380,6 @@ class GerenciadorCheckpoint:
         except Exception as e:
             print(f"❌ Erro ao limpar dados: {e}")
     
-    def exportar_relatorio(self):
-        """Exporta relatório para Excel"""
-        try:
-            conn = self.conectar_banco()
-            if not conn:
-                return
-            
-            # Buscar todos os dados
-            cursor = conn.cursor()
-            
-            # Progresso geral
-            cursor.execute('''
-                SELECT cpf_titular, nome_titular, etapa_atual, status, 
-                       timestamp, observacoes
-                FROM progresso_efd 
-                ORDER BY timestamp DESC
-            ''')
-            
-            progresso_data = cursor.fetchall()
-            
-            # Dependentes
-            cursor.execute('''
-                SELECT cpf_titular, cpf_dependente, relacao, descricao_agregado,
-                       status, timestamp
-                FROM dependentes_processados 
-                ORDER BY timestamp DESC
-            ''')
-            
-            dependentes_data = cursor.fetchall()
-            
-            # Planos
-            cursor.execute('''
-                SELECT cpf_titular, cnpj_operadora, valor_titular,
-                       status, timestamp
-                FROM planos_processados 
-                ORDER BY timestamp DESC
-            ''')
-            
-            planos_data = cursor.fetchall()
-            
-            conn.close()
-            
-            # Criar Excel
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            nome_arquivo = f"relatorio_checkpoint_{timestamp}.xlsx"
-            
-            with pd.ExcelWriter(nome_arquivo, engine='openpyxl') as writer:
-                # Aba Progresso
-                df_progresso = pd.DataFrame(progresso_data, columns=[
-                    'CPF_Titular', 'Nome_Titular', 'Etapa_Atual', 'Status', 
-                    'Timestamp', 'Observacoes'
-                ])
-                df_progresso.to_excel(writer, sheet_name='Progresso', index=False)
-                
-                # Aba Dependentes
-                df_dependentes = pd.DataFrame(dependentes_data, columns=[
-                    'CPF_Titular', 'CPF_Dependente', 'Relacao', 'Descricao_Agregado',
-                    'Status', 'Timestamp'
-                ])
-                df_dependentes.to_excel(writer, sheet_name='Dependentes', index=False)
-                
-                # Aba Planos
-                df_planos = pd.DataFrame(planos_data, columns=[
-                    'CPF_Titular', 'CNPJ_Operadora', 'Valor_Titular',
-                    'Status', 'Timestamp'
-                ])
-                df_planos.to_excel(writer, sheet_name='Planos', index=False)
-            
-            print(f"✅ Relatório exportado: {nome_arquivo}")
-            
-        except Exception as e:
-            print(f"❌ Erro ao exportar relatório: {e}")
-    
-    def resetar_progresso_cpf(self):
-        """Reseta o progresso de um CPF específico"""
-        try:
-            cpf = input("\n🔄 Digite o CPF para resetar: ").strip()
-            if not cpf:
-                print("❌ CPF não informado")
-                return
-            
-            confirmar = input(f"⚠️ Tem certeza que quer resetar o progresso do CPF {cpf}? (digite 'SIM'): ")
-            if confirmar != "SIM":
-                print("❌ Operação cancelada")
-                return
-            
-            conn = self.conectar_banco()
-            if not conn:
-                return
-            
-            cursor = conn.cursor()
-            
-            # Verificar se CPF existe
-            cursor.execute('SELECT COUNT(*) FROM progresso_efd WHERE cpf_titular = ?', (cpf,))
-            existe = cursor.fetchone()[0]
-            
-            if existe == 0:
-                print(f"❌ CPF {cpf} não encontrado no banco")
-                conn.close()
-                return
-            
-            # Limpar dados do CPF
-            cursor.execute('DELETE FROM progresso_efd WHERE cpf_titular = ?', (cpf,))
-            cursor.execute('DELETE FROM dependentes_processados WHERE cpf_titular = ?', (cpf,))
-            cursor.execute('DELETE FROM planos_processados WHERE cpf_titular = ?', (cpf,))
-            cursor.execute('DELETE FROM info_dependentes_processados WHERE cpf_titular = ?', (cpf,))
-            
-            conn.commit()
-            conn.close()
-            
-            print(f"✅ Progresso do CPF {cpf} foi resetado!")
-            print("💡 O CPF pode ser processado novamente na próxima execução")
-            
-        except Exception as e:
-            print(f"❌ Erro ao resetar progresso: {e}")
-    
     def gerar_planilha_visualizacao(self):
         """Gera planilha Excel para visualização do banco de dados"""
         try:
@@ -508,29 +415,6 @@ class GerenciadorCheckpoint:
                 ORDER BY timestamp DESC
             ''', conn)
             
-            # Buscar planos processados
-            df_planos = pd.read_sql_query('''
-                SELECT 
-                    cpf_titular,
-                    cnpj_operadora,
-                    valor_titular,
-                    status,
-                    timestamp
-                FROM planos_processados 
-                ORDER BY timestamp DESC
-            ''', conn)
-            
-            # Buscar informações de dependentes
-            df_info_dependentes = pd.read_sql_query('''
-                SELECT 
-                    cpf_titular,
-                    cpf_dependente,
-                    valor_dependente,
-                    status,
-                    timestamp
-                FROM info_dependentes_processados 
-                ORDER BY timestamp DESC
-            ''', conn)
             
             conn.close()
             
@@ -544,15 +428,6 @@ class GerenciadorCheckpoint:
                 
                 # Contar dependentes
                 total_dependentes = len(df_dependentes[df_dependentes['cpf_titular'] == cpf])
-                dependentes_sucesso = len(df_dependentes[(df_dependentes['cpf_titular'] == cpf) & (df_dependentes['status'] == 'sucesso')])
-                
-                # Contar planos
-                total_planos = len(df_planos[df_planos['cpf_titular'] == cpf])
-                planos_sucesso = len(df_planos[(df_planos['cpf_titular'] == cpf) & (df_planos['status'] == 'sucesso')])
-                
-                # Contar info dependentes
-                total_info = len(df_info_dependentes[df_info_dependentes['cpf_titular'] == cpf])
-                info_sucesso = len(df_info_dependentes[(df_info_dependentes['cpf_titular'] == cpf) & (df_info_dependentes['status'] == 'sucesso')])
                 
                 resumo_cpfs.append({
                     'CPF_Titular': cpf,
@@ -560,11 +435,6 @@ class GerenciadorCheckpoint:
                     'Status_Final': ultimo_status['status'],
                     'Etapa_Atual': ultimo_status['etapa_atual'],
                     'Total_Dependentes': total_dependentes,
-                    'Dependentes_Sucesso': dependentes_sucesso,
-                    'Total_Planos': total_planos,
-                    'Planos_Sucesso': planos_sucesso,
-                    'Total_Info_Dependentes': total_info,
-                    'Info_Sucesso': info_sucesso,
                     'Ultima_Atualizacao': ultimo_status['timestamp'],
                     'Observacoes': ultimo_status['observacoes']
                 })
@@ -585,12 +455,6 @@ class GerenciadorCheckpoint:
                 # Aba Dependentes
                 df_dependentes.to_excel(writer, sheet_name='Dependentes', index=False)
                 
-                # Aba Planos
-                df_planos.to_excel(writer, sheet_name='Planos', index=False)
-                
-                # Aba Info Dependentes
-                df_info_dependentes.to_excel(writer, sheet_name='Info_Dependentes', index=False)
-                
                 # Aba Estatísticas
                 stats = {
                     'Metrica': [
@@ -598,18 +462,14 @@ class GerenciadorCheckpoint:
                         'CPFs com Sucesso',
                         'CPFs Pulados',
                         'CPFs com Erro',
-                        'Total de Dependentes',
-                        'Total de Planos',
-                        'Total de Info Dependentes'
+                        'Total de Dependentes'
                     ],
                     'Valor': [
                         len(cpfs_unicos),
                         len(df_resumo[df_resumo['Status_Final'] == 'sucesso']),
                         len(df_resumo[df_resumo['Status_Final'] == 'pulado']),
                         len(df_resumo[df_resumo['Status_Final'] == 'erro']),
-                        len(df_dependentes),
-                        len(df_planos),
-                        len(df_info_dependentes)
+                        len(df_dependentes)
                     ]
                 }
                 df_stats = pd.DataFrame(stats)
@@ -622,10 +482,171 @@ class GerenciadorCheckpoint:
         except Exception as e:
             print(f"❌ Erro ao gerar planilha: {e}")
     
-    def resetar_checkpoint_indice(self):
-        """Reseta o checkpoint de índice para começar do zero"""
+    def alterar_checkpoint_atual(self):
+        """Menu para alterar o checkpoint atual"""
         try:
-            confirmar = input("⚠️ Tem certeza que quer resetar o checkpoint de índice? (digite 'SIM'): ")
+            print(f"\n⚙️ ALTERAR CHECKPOINT ATUAL")
+            print(f"{'='*50}")
+            print("1. 📊 Alterar por índice de grupo")
+            print("2. 👤 Alterar por CPF específico")
+            print("3. 📋 Ver checkpoint atual")
+            print("4. 📄 Listar grupos disponíveis")
+            print("0. ⬅️ Voltar")
+            
+            opcao = input("\nEscolha uma opção: ").strip()
+            
+            if opcao == "1":
+                self.alterar_checkpoint_por_indice()
+            elif opcao == "2":
+                self.alterar_checkpoint_por_cpf()
+            elif opcao == "3":
+                self.ver_checkpoint_atual()
+            elif opcao == "4":
+                self.listar_grupos_disponiveis()
+            elif opcao == "0":
+                return
+            else:
+                print("❌ Opção inválida")
+                
+        except Exception as e:
+            print(f"❌ Erro ao alterar checkpoint: {e}")
+    
+    def ver_checkpoint_atual(self):
+        """Mostra o checkpoint atual"""
+        try:
+            conn = self.conectar_banco()
+            if not conn:
+                return
+            
+            cursor = conn.cursor()
+            
+            print(f"\n📋 CHECKPOINT ATUAL")
+            print(f"{'='*40}")
+            
+            # Ver checkpoint de índice
+            try:
+                cursor.execute('SELECT ultimo_indice, timestamp FROM checkpoint_indice ORDER BY timestamp DESC LIMIT 1')
+                checkpoint = cursor.fetchone()
+                if checkpoint:
+                    indice, timestamp = checkpoint
+                    print(f"📊 Checkpoint por índice: Grupo {indice + 1} (índice {indice})")
+                    print(f"   Atualizado em: {timestamp}")
+                else:
+                    print("📊 Checkpoint por índice: Não definido (começará do grupo 1)")
+            except:
+                print("📊 Checkpoint por índice: Tabela não existe")
+            
+            # Ver último CPF processado
+            try:
+                cursor.execute('''
+                    SELECT cpf_titular, nome_titular, etapa_atual, status, timestamp 
+                    FROM progresso_efd 
+                    ORDER BY timestamp DESC 
+                    LIMIT 1
+                ''')
+                ultimo_cpf = cursor.fetchone()
+                if ultimo_cpf:
+                    cpf, nome, etapa, status, timestamp = ultimo_cpf
+                    print(f"\n👤 Último CPF processado: {cpf}")
+                    print(f"   Nome: {nome}")
+                    print(f"   Etapa: {etapa}")
+                    print(f"   Status: {status}")
+                    print(f"   Data: {timestamp}")
+                else:
+                    print("\n👤 Nenhum CPF processado ainda")
+            except:
+                print("\n👤 Tabela de progresso não existe")
+            
+            conn.close()
+            
+        except Exception as e:
+            print(f"❌ Erro ao ver checkpoint atual: {e}")
+    
+    def listar_grupos_disponiveis(self):
+        """Lista os grupos disponíveis no Excel"""
+        try:
+            arquivo_excel = 'dados.xlsx'
+            planilha = 'MAR 2025'
+            
+            if not os.path.exists(arquivo_excel):
+                print(f"❌ Arquivo {arquivo_excel} não encontrado")
+                return
+            
+            print(f"\n📄 GRUPOS DISPONÍVEIS EM {arquivo_excel}")
+            print(f"{'='*60}")
+            
+            # Ler dados do Excel
+            dados = pd.read_excel(arquivo_excel, sheet_name=planilha, skiprows=1)
+            dados_limpos = dados.dropna(how='all')
+            dados_limpos = dados_limpos[dados_limpos['CPF'].notna()]
+            
+            # Agrupar por titular
+            grupos = []
+            grupo_atual = []
+            
+            for _, row in dados_limpos.iterrows():
+                if pd.isna(row['NOME']) or str(row['NOME']).strip() == '':
+                    continue
+                if pd.isna(row['DEPENDENCIA']) or str(row['DEPENDENCIA']).strip() == '':
+                    continue
+                if pd.isna(row['CPF']) or str(row['CPF']).strip() == '':
+                    continue
+                
+                dependencia = str(row['DEPENDENCIA']).strip().upper()
+                
+                if dependencia == 'TITULAR':
+                    if grupo_atual:
+                        grupos.append(grupo_atual)
+                    grupo_atual = [row]
+                else:
+                    if grupo_atual:
+                        grupo_atual.append(row)
+            
+            if grupo_atual:
+                grupos.append(grupo_atual)
+            
+            # Mostrar grupos
+            print(f"Total de grupos encontrados: {len(grupos)}\n")
+            
+            for i, grupo in enumerate(grupos):
+                titular = grupo[0]  # Primeiro é sempre o titular
+                dependentes = len(grupo) - 1
+                
+                print(f"Grupo {i + 1} (índice {i}):")
+                print(f"   👤 Titular: {titular['NOME']} - CPF: {titular['CPF']}")
+                print(f"   👥 Dependentes: {dependentes}")
+                print()
+                
+                # Mostrar apenas os primeiros 10 grupos para não poluir a tela
+                if i >= 9:
+                    restantes = len(grupos) - 10
+                    if restantes > 0:
+                        print(f"... e mais {restantes} grupos")
+                    break
+            
+        except Exception as e:
+            print(f"❌ Erro ao listar grupos: {e}")
+    
+    def alterar_checkpoint_por_indice(self):
+        """Altera o checkpoint por índice de grupo"""
+        try:
+            # Primeiro mostrar grupos disponíveis
+            self.listar_grupos_disponiveis()
+            
+            print(f"\n⚙️ ALTERAR CHECKPOINT POR ÍNDICE")
+            print(f"{'='*40}")
+            
+            try:
+                novo_indice = int(input("Digite o ÍNDICE do grupo para continuar (ex: 5 para grupo 6): ").strip())
+            except ValueError:
+                print("❌ Índice inválido")
+                return
+            
+            if novo_indice < 0:
+                print("❌ Índice deve ser maior ou igual a 0")
+                return
+            
+            confirmar = input(f"⚠️ Definir checkpoint para índice {novo_indice} (grupo {novo_indice + 1})? (digite 'SIM'): ")
             if confirmar != "SIM":
                 print("❌ Operação cancelada")
                 return
@@ -635,15 +656,142 @@ class GerenciadorCheckpoint:
                 return
             
             cursor = conn.cursor()
+            
+            # Criar tabela se não existir
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS checkpoint_indice (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ultimo_indice INTEGER NOT NULL,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            # Atualizar checkpoint
             cursor.execute('DELETE FROM checkpoint_indice')
+            cursor.execute('INSERT INTO checkpoint_indice (ultimo_indice) VALUES (?)', (novo_indice,))
+            
             conn.commit()
             conn.close()
             
-            print("✅ Checkpoint de índice resetado!")
-            print("💡 O processamento começará do grupo 1 na próxima execução")
+            print(f"✅ Checkpoint alterado para índice {novo_indice} (grupo {novo_indice + 1})!")
+            print("💡 O processamento continuará a partir deste grupo")
             
         except Exception as e:
-            print(f"❌ Erro ao resetar checkpoint de índice: {e}")
+            print(f"❌ Erro ao alterar checkpoint por índice: {e}")
+    
+    def alterar_checkpoint_por_cpf(self):
+        """Altera o checkpoint para um CPF específico"""
+        try:
+            print(f"\n⚙️ ALTERAR CHECKPOINT POR CPF")
+            print(f"{'='*40}")
+            
+            # Mostrar CPFs disponíveis
+            arquivo_excel = 'dados.xlsx'
+            planilha = 'MAR 2025'
+            
+            if os.path.exists(arquivo_excel):
+                dados = pd.read_excel(arquivo_excel, sheet_name=planilha, skiprows=1)
+                titulares = dados[dados['DEPENDENCIA'] == 'TITULAR']['CPF'].tolist()
+                
+                print("📋 Primeiros 10 CPFs titulares no Excel:")
+                for i, cpf in enumerate(titulares[:10]):
+                    print(f"   {i+1}. {cpf}")
+                if len(titulares) > 10:
+                    print(f"   ... e mais {len(titulares) - 10} CPFs")
+                print()
+            
+            cpf_alvo = input("Digite o CPF titular para definir como próximo: ").strip()
+            if not cpf_alvo:
+                print("❌ CPF não informado")
+                return
+            
+            # Verificar se CPF existe no Excel
+            if os.path.exists(arquivo_excel):
+                dados = pd.read_excel(arquivo_excel, sheet_name=planilha, skiprows=1)
+                cpfs_excel = dados[dados['DEPENDENCIA'] == 'TITULAR']['CPF'].astype(str).tolist()
+                
+                if cpf_alvo not in cpfs_excel:
+                    print(f"⚠️ CPF {cpf_alvo} não encontrado como titular no Excel")
+                    confirmar_mesmo_assim = input("Continuar mesmo assim? (digite 'SIM'): ")
+                    if confirmar_mesmo_assim != "SIM":
+                        return
+                
+                # Encontrar índice do grupo
+                grupos = []
+                grupo_atual = []
+                dados_limpos = dados.dropna(how='all')
+                dados_limpos = dados_limpos[dados_limpos['CPF'].notna()]
+                
+                for _, row in dados_limpos.iterrows():
+                    if pd.isna(row['NOME']) or str(row['NOME']).strip() == '':
+                        continue
+                    if pd.isna(row['DEPENDENCIA']) or str(row['DEPENDENCIA']).strip() == '':
+                        continue
+                    if pd.isna(row['CPF']) or str(row['CPF']).strip() == '':
+                        continue
+                    
+                    dependencia = str(row['DEPENDENCIA']).strip().upper()
+                    
+                    if dependencia == 'TITULAR':
+                        if grupo_atual:
+                            grupos.append(grupo_atual)
+                        grupo_atual = [row]
+                    else:
+                        if grupo_atual:
+                            grupo_atual.append(row)
+                
+                if grupo_atual:
+                    grupos.append(grupo_atual)
+                
+                # Encontrar índice do CPF
+                indice_encontrado = None
+                for i, grupo in enumerate(grupos):
+                    if str(grupo[0]['CPF']) == cpf_alvo:  # grupo[0] é sempre o titular
+                        indice_encontrado = i
+                        break
+                
+                if indice_encontrado is not None:
+                    print(f"✅ CPF encontrado no grupo {indice_encontrado + 1} (índice {indice_encontrado})")
+                    
+                    confirmar = input(f"⚠️ Definir checkpoint para este CPF/grupo? (digite 'SIM'): ")
+                    if confirmar != "SIM":
+                        print("❌ Operação cancelada")
+                        return
+                    
+                    conn = self.conectar_banco()
+                    if not conn:
+                        return
+                    
+                    cursor = conn.cursor()
+                    
+                    # Criar tabela se não existir
+                    cursor.execute('''
+                        CREATE TABLE IF NOT EXISTS checkpoint_indice (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            ultimo_indice INTEGER NOT NULL,
+                            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                        )
+                    ''')
+                    
+                    # Definir checkpoint para o índice ANTERIOR ao grupo desejado
+                    # Assim o sistema processará este grupo na próxima execução
+                    novo_indice = max(0, indice_encontrado - 1) if indice_encontrado > 0 else 0
+                    
+                    cursor.execute('DELETE FROM checkpoint_indice')
+                    cursor.execute('INSERT INTO checkpoint_indice (ultimo_indice) VALUES (?)', (novo_indice,))
+                    
+                    conn.commit()
+                    conn.close()
+                    
+                    print(f"✅ Checkpoint definido!")
+                    print(f"💡 O processamento continuará a partir do CPF {cpf_alvo}")
+                    print(f"   (Grupo {indice_encontrado + 1}, índice {indice_encontrado})")
+                    
+                else:
+                    print(f"❌ CPF {cpf_alvo} não encontrado nos grupos")
+            
+        except Exception as e:
+            print(f"❌ Erro ao alterar checkpoint por CPF: {e}")
     
     def executar(self):
         """Executa o gerenciador"""
@@ -666,13 +814,9 @@ class GerenciadorCheckpoint:
                 elif opcao == "5":
                     self.limpar_dados()
                 elif opcao == "6":
-                    self.exportar_relatorio()
-                elif opcao == "7":
-                    self.resetar_progresso_cpf()
-                elif opcao == "8":
                     self.gerar_planilha_visualizacao()
-                elif opcao == "9":
-                    self.resetar_checkpoint_indice()
+                elif opcao == "7":
+                    self.alterar_checkpoint_atual()
                 else:
                     print("❌ Opção inválida")
                 

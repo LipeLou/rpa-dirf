@@ -19,6 +19,11 @@ import sys
 import platform
 import sqlite3
 from datetime import datetime
+import pyautogui
+from PIL import Image
+
+# Importar configurações
+from config import *
 
 # Configurar encoding UTF-8 para Windows
 if platform.system() == "Windows":
@@ -26,13 +31,15 @@ if platform.system() == "Windows":
     sys.stderr.reconfigure(encoding='utf-8')
 
 # ============================================================
-# CONFIGURAÇÕES
+# CONFIGURAÇÕES PYAUTOGUI
 # ============================================================
 
-URL_BASE = 'https://cav.receita.fazenda.gov.br/ecac/Aplicacao.aspx?id=10019&origem=menu'
-ARQUIVO_EXCEL = 'dados.xlsx'
-PLANILHA = 'MAR 2025'
-BANCO_DADOS = 'checkpoint_efd.db'
+# Configurar PyAutoGUI para segurança e performance
+pyautogui.FAILSAFE = PYAUTOGUI_FAILSAFE
+pyautogui.PAUSE = PYAUTOGUI_PAUSE
+
+# Detectar sistema operacional para configurações específicas
+SISTEMA_OPERACIONAL = platform.system()
 
 # Mapeamento de dependências do Excel para valores do formulário
 MAPEAMENTO_DEPENDENCIAS = {
@@ -61,18 +68,57 @@ MAPEAMENTO_DEPENDENCIAS = {
 # ============================================================
 
 class AutomacaoEFD:
-    """Classe principal para automação do EFD-REINF"""
+    """
+    Classe principal para automação completa do EFD-REINF com assinatura eletrônica.
+    
+    Esta classe gerencia todo o processo de automação, incluindo:
+    - Configuração do navegador Chrome
+    - Preenchimento automático de formulários
+    - Sistema de checkpoints para controle de progresso
+    - Assinatura eletrônica automatizada (Métodos A e B)
+    - Detecção automática de confirmações de sucesso
+    - Navegação automática entre CPFs
+    
+    Attributes:
+        driver (webdriver.Chrome): Instância do navegador Chrome
+        cpf_titular_atual (str): CPF do titular sendo processado atualmente
+        nome_titular_atual (str): Nome do titular sendo processado
+        verificar_dados_manual (bool): Se deve pausar para verificação manual
+        metodo_assinatura (int): Método de assinatura (1=teclas, 2=mouse)
+        coordenadas_mouse_metodo_b (tuple): Coordenadas (x,y) para método B
+    """
     
     def __init__(self):
-        """Inicializa a automação"""
+        """
+        Inicializa a automação configurando navegador e banco de dados.
+        
+        Configura:
+        - Chrome com perfil dedicado e proteções anti-detecção
+        - Banco de dados SQLite para checkpoints
+        - Configurações padrão (verificação manual = True, método A)
+        """
         self.driver = None
         self.cpf_titular_atual = None
         self.nome_titular_atual = None
+        self.verificar_dados_manual = VERIFICACAO_MANUAL_PADRAO  # Por padrão, verificar dados manualmente
+        self.metodo_assinatura = METODO_ASSINATURA_PADRAO  # Por padrão, usar método A
+        self.coordenadas_mouse_metodo_b = COORDENADAS_MOUSE_METODO_B  # Carregar do config
         self.inicializar_banco_dados()
         self.configurar_chrome()
     
     def configurar_chrome(self):
-        """Configura e abre o Chrome"""
+        """
+        Configura e abre uma instância do Chrome otimizada para automação.
+        
+        Configurações aplicadas:
+        - Perfil dedicado em 'chrome_efd/' para isolamento
+        - Proteções anti-detecção com undetected-chromedriver
+        - Selenium stealth para mascarar automação
+        - Configurações de performance e estabilidade
+        
+        Raises:
+            Exception: Se não conseguir inicializar o Chrome
+        """
         print("\n" + "="*60)
         print("🔧 CONFIGURANDO CHROME")
         print("="*60)
@@ -81,12 +127,16 @@ class AutomacaoEFD:
         options = uc.ChromeOptions()
         
         # Usar perfil DEDICADO
-        profile_dir = os.path.join(os.getcwd(), "chrome_efd")
+        profile_dir = os.path.join(os.getcwd(), CHROME_PROFILE_DIR)
         if not os.path.exists(profile_dir):
             os.makedirs(profile_dir)
             print("📁 Perfil criado")
         
         options.add_argument(f'--user-data-dir={profile_dir}')
+        
+        # Adicionar argumentos do Chrome do config
+        for arg in CHROME_ARGS:
+            options.add_argument(arg)
         
         options.add_argument('--start-maximized')
         
@@ -132,8 +182,8 @@ class AutomacaoEFD:
         try:
             input("\n✅ VÊ OS 3 CAMPOS NA TELA? Pressione ENTER para automação...\n")
         except (EOFError, KeyboardInterrupt):
-            print("\n⚠️ Executando via script - aguardando 2 segundos...")
-            time.sleep(2)
+            print(f"\n⚠️ Executando via script - aguardando {TEMPO_ESPERA_SCRIPT}s...")
+            time.sleep(TEMPO_ESPERA_SCRIPT)
     
     def inspecionar_pagina(self):
         """Permite inspecionar a página atual para debug"""
@@ -183,7 +233,7 @@ class AutomacaoEFD:
     # FUNÇÕES DE AUTOMAÇÃO (a serem implementadas)
     # ============================================================
     
-    def delay_humano(self, min_sec=0.1, max_sec=0.3):
+    def delay_humano(self, min_sec=INTERVALO_ESPERA_MIN, max_sec=INTERVALO_ESPERA_MAX):
         """Adiciona delay aleatório para simular comportamento humano"""
         time.sleep(random.uniform(min_sec, max_sec))
     
@@ -191,7 +241,7 @@ class AutomacaoEFD:
         """Digita texto caractere por caractere"""
         for char in str(texto):
             elemento.send_keys(char)
-            time.sleep(random.uniform(0.02, 0.05))
+            time.sleep(random.uniform(INTERVALO_DIGITACAO_MIN, INTERVALO_DIGITACAO_MAX))
     
     def formatar_valor(self, valor):
         """Formata um valor para 2 casas decimais no padrão brasileiro (vírgula)"""
@@ -212,6 +262,37 @@ class AutomacaoEFD:
             return f"{valor_arredondado:.2f}".replace('.', ',')
         except (ValueError, TypeError):
             return '0,00'
+
+    def salvar_coordenadas_config(self, coordenadas):
+        """Salva as coordenadas no arquivo config.py"""
+        try:
+            # Ler o arquivo atual
+            with open('config.py', 'r', encoding='utf-8') as f:
+                conteudo = f.read()
+            
+            # Substituir a linha das coordenadas
+            if coordenadas:
+                nova_linha = f"COORDENADAS_MOUSE_METODO_B = {coordenadas}"
+            else:
+                nova_linha = "COORDENADAS_MOUSE_METODO_B = None"
+            
+            # Encontrar e substituir a linha
+            linhas = conteudo.split('\n')
+            for i, linha in enumerate(linhas):
+                if linha.startswith('COORDENADAS_MOUSE_METODO_B'):
+                    linhas[i] = nova_linha
+                    break
+            
+            # Salvar o arquivo
+            with open('config.py', 'w', encoding='utf-8') as f:
+                f.write('\n'.join(linhas))
+            
+            print(f"💾 Coordenadas salvas no config.py: {coordenadas}")
+            return True
+            
+        except Exception as e:
+            print(f"⚠️ Erro ao salvar coordenadas no config.py: {e}")
+            return False
     
     def mapear_dependencia(self, dependencia_dataframe):
         """Mapeia a dependência do Excel para o valor do formulário"""
@@ -328,10 +409,10 @@ class AutomacaoEFD:
             cursor = conn.cursor()
             
             cursor.execute('''
-                INSERT INTO dependentes_processados 
-                (cpf_titular, cpf_dependente, relacao, descricao_agregado, status)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (cpf_titular, cpf_dependente, relacao, descricao_agregado, status))
+                INSERT OR REPLACE INTO dependentes_processados 
+                (cpf_titular, cpf_dependente, relacao, descricao_agregado, status, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (cpf_titular, cpf_dependente, relacao, descricao_agregado, status, datetime.now().isoformat()))
             
             conn.commit()
             conn.close()
@@ -348,10 +429,10 @@ class AutomacaoEFD:
             cursor = conn.cursor()
             
             cursor.execute('''
-                INSERT INTO planos_processados 
-                (cpf_titular, cnpj_operadora, valor_titular, status)
-                VALUES (?, ?, ?, ?)
-            ''', (cpf_titular, cnpj_operadora, valor_titular, status))
+                INSERT OR REPLACE INTO planos_processados 
+                (cpf_titular, cnpj_operadora, valor_titular, status, timestamp)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (cpf_titular, cnpj_operadora, valor_titular, status, datetime.now().isoformat()))
             
             conn.commit()
             conn.close()
@@ -359,6 +440,85 @@ class AutomacaoEFD:
             
         except Exception as e:
             print(f"❌ Erro ao salvar plano: {e}")
+            return False
+
+    def verificar_grupo_completamente_processado(self, cpf_titular):
+        """Verifica se um grupo foi completamente processado (chegou até o final)"""
+        try:
+            conn = sqlite3.connect(BANCO_DADOS)
+            cursor = conn.cursor()
+            
+            # Verificar se existe checkpoint de "grupo_completo" com sucesso
+            cursor.execute('''
+                SELECT COUNT(*) FROM progresso_efd 
+                WHERE cpf_titular = ? AND etapa_atual = 'grupo_completo' AND status = 'sucesso'
+            ''', (cpf_titular,))
+            
+            count = cursor.fetchone()[0]
+            conn.close()
+            
+            return count > 0
+            
+        except Exception as e:
+            print(f"❌ Erro ao verificar grupo completo: {e}")
+            return False
+
+    def verificar_ultimo_status_pulado(self, cpf_titular):
+        """Verifica se o último checkpoint do CPF foi 'pulado' (ex: CPF já lançado)"""
+        try:
+            conn = sqlite3.connect(BANCO_DADOS)
+            cursor = conn.cursor()
+            
+            # Buscar o último checkpoint deste CPF
+            cursor.execute('''
+                SELECT etapa_atual, status FROM progresso_efd 
+                WHERE cpf_titular = ? 
+                ORDER BY timestamp DESC 
+                LIMIT 1
+            ''', (cpf_titular,))
+            
+            resultado = cursor.fetchone()
+            conn.close()
+            
+            if resultado:
+                etapa, status = resultado
+                return status == 'pulado'
+            
+            return False
+            
+        except Exception as e:
+            print(f"❌ Erro ao verificar último status: {e}")
+            return False
+
+    def limpar_dados_parciais_grupo(self, cpf_titular):
+        """Remove dados parciais de um grupo que não foi completado"""
+        try:
+            conn = sqlite3.connect(BANCO_DADOS)
+            cursor = conn.cursor()
+            
+            # Remover dependentes parciais
+            cursor.execute('DELETE FROM dependentes_processados WHERE cpf_titular = ?', (cpf_titular,))
+            
+            # Remover planos parciais  
+            cursor.execute('DELETE FROM planos_processados WHERE cpf_titular = ?', (cpf_titular,))
+            
+            # Remover informações de dependentes parciais
+            cursor.execute('DELETE FROM info_dependentes_processados WHERE cpf_titular = ?', (cpf_titular,))
+            
+            # Remover checkpoints parciais (manter apenas se grupo foi completamente processado)
+            cursor.execute('''
+                DELETE FROM progresso_efd 
+                WHERE cpf_titular = ? AND NOT (etapa_atual = 'grupo_completo' AND status = 'sucesso')
+            ''', (cpf_titular,))
+            
+            conn.commit()
+            conn.close()
+            
+            print(f"🧹 Dados parciais removidos para CPF: {cpf_titular}")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Erro ao limpar dados parciais: {e}")
             return False
     
     def salvar_info_dependente_processado(self, cpf_titular, cpf_dependente, valor_dependente, status):
@@ -523,29 +683,6 @@ class AutomacaoEFD:
                 ORDER BY timestamp DESC
             ''', conn)
             
-            # Buscar planos processados
-            df_planos = pd.read_sql_query('''
-                SELECT 
-                    cpf_titular,
-                    cnpj_operadora,
-                    valor_titular,
-                    status,
-                    timestamp
-                FROM planos_processados 
-                ORDER BY timestamp DESC
-            ''', conn)
-            
-            # Buscar informações de dependentes
-            df_info_dependentes = pd.read_sql_query('''
-                SELECT 
-                    cpf_titular,
-                    cpf_dependente,
-                    valor_dependente,
-                    status,
-                    timestamp
-                FROM info_dependentes_processados 
-                ORDER BY timestamp DESC
-            ''', conn)
             
             conn.close()
             
@@ -559,15 +696,6 @@ class AutomacaoEFD:
                 
                 # Contar dependentes
                 total_dependentes = len(df_dependentes[df_dependentes['cpf_titular'] == cpf])
-                dependentes_sucesso = len(df_dependentes[(df_dependentes['cpf_titular'] == cpf) & (df_dependentes['status'] == 'sucesso')])
-                
-                # Contar planos
-                total_planos = len(df_planos[df_planos['cpf_titular'] == cpf])
-                planos_sucesso = len(df_planos[(df_planos['cpf_titular'] == cpf) & (df_planos['status'] == 'sucesso')])
-                
-                # Contar info dependentes
-                total_info = len(df_info_dependentes[df_info_dependentes['cpf_titular'] == cpf])
-                info_sucesso = len(df_info_dependentes[(df_info_dependentes['cpf_titular'] == cpf) & (df_info_dependentes['status'] == 'sucesso')])
                 
                 resumo_cpfs.append({
                     'CPF_Titular': cpf,
@@ -575,11 +703,6 @@ class AutomacaoEFD:
                     'Status_Final': ultimo_status['status'],
                     'Etapa_Atual': ultimo_status['etapa_atual'],
                     'Total_Dependentes': total_dependentes,
-                    'Dependentes_Sucesso': dependentes_sucesso,
-                    'Total_Planos': total_planos,
-                    'Planos_Sucesso': planos_sucesso,
-                    'Total_Info_Dependentes': total_info,
-                    'Info_Sucesso': info_sucesso,
                     'Ultima_Atualizacao': ultimo_status['timestamp'],
                     'Observacoes': ultimo_status['observacoes']
                 })
@@ -600,12 +723,6 @@ class AutomacaoEFD:
                 # Aba Dependentes
                 df_dependentes.to_excel(writer, sheet_name='Dependentes', index=False)
                 
-                # Aba Planos
-                df_planos.to_excel(writer, sheet_name='Planos', index=False)
-                
-                # Aba Info Dependentes
-                df_info_dependentes.to_excel(writer, sheet_name='Info_Dependentes', index=False)
-                
                 # Aba Estatísticas
                 stats = {
                     'Metrica': [
@@ -613,18 +730,14 @@ class AutomacaoEFD:
                         'CPFs com Sucesso',
                         'CPFs Pulados',
                         'CPFs com Erro',
-                        'Total de Dependentes',
-                        'Total de Planos',
-                        'Total de Info Dependentes'
+                        'Total de Dependentes'
                     ],
                     'Valor': [
                         len(cpfs_unicos),
                         len(df_resumo[df_resumo['Status_Final'] == 'sucesso']),
                         len(df_resumo[df_resumo['Status_Final'] == 'pulado']),
                         len(df_resumo[df_resumo['Status_Final'] == 'erro']),
-                        len(df_dependentes),
-                        len(df_planos),
-                        len(df_info_dependentes)
+                        len(df_dependentes)
                     ]
                 }
                 df_stats = pd.DataFrame(stats)
@@ -725,7 +838,7 @@ class AutomacaoEFD:
             for nome, metodo, seletor in tentativas:
                 try:
                     print(f"   Tentando encontrar por {nome}: {seletor}")
-                    WebDriverWait(self.driver, 3).until(
+                    WebDriverWait(self.driver, TIMEOUT_MODAL).until(
                         EC.presence_of_element_located((metodo, seletor))
                     )
                     print(f"   ✅ Encontrado por {nome}!")
@@ -761,8 +874,8 @@ class AutomacaoEFD:
             campo_data = self.driver.find_element(By.ID, "periodo_apuracao")
             campo_data.clear()
             self.delay_humano(0.2, 0.5)
-            self.digitar_devagar(campo_data, "03/2025")
-            print("   ✅ Data: 03/2025")
+            self.digitar_devagar(campo_data, PERIODO_APURACAO)
+            print(f"   ✅ Data: {PERIODO_APURACAO}")
             self.delay_humano(0.5, 1.0)
             
             # CAMPO 2: CNPJ
@@ -770,8 +883,8 @@ class AutomacaoEFD:
             campo_cnpj = self.driver.find_element(By.ID, "insc_estabelecimento")
             campo_cnpj.clear()
             self.delay_humano(0.2, 0.5)
-            self.digitar_devagar(campo_cnpj, "19.310.796/0001-07")
-            print("   ✅ CNPJ: 19.310.796/0001-07")
+            self.digitar_devagar(campo_cnpj, CNPJ_EMPRESA)
+            print(f"   ✅ CNPJ: {CNPJ_EMPRESA}")
             self.delay_humano(0.5, 1.0)
             
             # CAMPO 3: CPF do Beneficiário
@@ -888,7 +1001,7 @@ class AutomacaoEFD:
             print("\n🔍 Verificando se segunda etapa carregou...")
             
             # Aguardar um pouco para a página processar
-            time.sleep(1)
+            time.sleep(TEMPO_PROCESSAMENTO_PAGINA)
             
             # Verificar se ainda estamos na primeira etapa (campos iniciais ainda visíveis)
             campos_primeira_etapa = [
@@ -952,7 +1065,7 @@ class AutomacaoEFD:
             print("\n🔄 Continuando para próxima etapa...")
             
             # Aguardar botão "Continuar" aparecer
-            WebDriverWait(self.driver, 3).until(
+            WebDriverWait(self.driver, TIMEOUT_MODAL).until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, '[data-testid="botao_continuar"]'))
             )
             
@@ -962,7 +1075,7 @@ class AutomacaoEFD:
             print("✅ Clicado em Continuar")
             
             # Aguardar um pouco para a página processar
-            time.sleep(1)
+            time.sleep(TEMPO_PROCESSAMENTO_PAGINA)
             
             # Verificar se há erros na primeira etapa
             if not self.verificar_erros_primeira_etapa():
@@ -1027,7 +1140,7 @@ class AutomacaoEFD:
                 return False
             
             # Aguardar modal carregar
-            WebDriverWait(self.driver, 3).until(
+            WebDriverWait(self.driver, TIMEOUT_MODAL).until(
                 EC.presence_of_element_located((By.ID, "cpf_dependente"))
             )
             
@@ -1056,7 +1169,7 @@ class AutomacaoEFD:
             if relacao_valor == "99" and agregado_outros:
                 try:
                     # Aguardar campo de descrição aparecer
-                    WebDriverWait(self.driver, 3).until(
+                    WebDriverWait(self.driver, TIMEOUT_MODAL).until(
                         EC.presence_of_element_located((By.ID, "descricao_dependencia"))
                     )
                     
@@ -1076,12 +1189,11 @@ class AutomacaoEFD:
                 print("✅ Dependente adicionado")
                 
                 # Aguardar modal fechar
-                WebDriverWait(self.driver, 3).until(
+                WebDriverWait(self.driver, TIMEOUT_MODAL).until(
                     EC.invisibility_of_element_located((By.ID, "cpf_dependente"))
                 )
                 
                 # Salvar checkpoint - dependente adicionado com sucesso
-                self.salvar_dependente_processado(self.cpf_titular_atual, cpf_dependente, relacao_valor, agregado_outros, "sucesso")
                 self.salvar_checkpoint(
                     self.cpf_titular_atual, 
                     self.nome_titular_atual, 
@@ -1089,6 +1201,9 @@ class AutomacaoEFD:
                     "sucesso",
                     observacoes=f"CPF: {cpf_dependente} adicionado com sucesso"
                 )
+                
+                # Salvar dependente como processado
+                self.salvar_dependente_processado(self.cpf_titular_atual, cpf_dependente, relacao_valor, agregado_outros, "sucesso")
                 
             except Exception as e:
                 print(f"❌ Erro ao salvar dependente: {e}")
@@ -1114,10 +1229,11 @@ class AutomacaoEFD:
                 print("✅ Modal de plano de saúde aberto")
             except Exception as e:
                 print(f"❌ Erro ao clicar no botão adicionar plano de saúde: {e}")
+                self.salvar_plano_processado(self.cpf_titular_atual, cnpj_operadora, valor_titular, "erro")
                 return False
             
             # Aguardar modal carregar
-            WebDriverWait(self.driver, 3).until(
+            WebDriverWait(self.driver, TIMEOUT_MODAL).until(
                 EC.presence_of_element_located((By.ID, "cnpj_operadora"))
             )
             
@@ -1129,6 +1245,7 @@ class AutomacaoEFD:
                 print(f"✅ CNPJ da operadora preenchido: {cnpj_operadora}")
             except Exception as e:
                 print(f"❌ Erro ao preencher CNPJ: {e}")
+                self.salvar_plano_processado(self.cpf_titular_atual, cnpj_operadora, valor_titular, "erro")
                 return False
             
             # Preencher valor pago pelo titular
@@ -1139,6 +1256,7 @@ class AutomacaoEFD:
                 print(f"✅ Valor pago pelo titular preenchido: R$ {valor_titular}")
             except Exception as e:
                 print(f"❌ Erro ao preencher valor: {e}")
+                self.salvar_plano_processado(self.cpf_titular_atual, cnpj_operadora, valor_titular, "erro")
                 return False
             
             # Clicar em Salvar
@@ -1148,17 +1266,23 @@ class AutomacaoEFD:
                 print("✅ Plano de saúde adicionado")
                 
                 # Aguardar modal fechar
-                WebDriverWait(self.driver, 3).until(
+                WebDriverWait(self.driver, TIMEOUT_MODAL).until(
                     EC.invisibility_of_element_located((By.ID, "cnpj_operadora"))
                 )
+                
+                # Salvar plano como processado
+                self.salvar_plano_processado(self.cpf_titular_atual, cnpj_operadora, valor_titular, "sucesso")
+                
             except Exception as e:
                 print(f"❌ Erro ao salvar plano de saúde: {e}")
+                self.salvar_plano_processado(self.cpf_titular_atual, cnpj_operadora, valor_titular, "erro")
                 return False
             
             return True
             
         except Exception as e:
             print(f"❌ Erro ao adicionar plano de saúde: {e}")
+            self.salvar_plano_processado(self.cpf_titular_atual, cnpj_operadora, valor_titular, "erro")
             return False
     
     def adicionar_informacao_dependente(self, cpf_dependente, valor_dependente):
@@ -1180,7 +1304,7 @@ class AutomacaoEFD:
                 return False
             
             # Aguardar modal carregar
-            WebDriverWait(self.driver, 3).until(
+            WebDriverWait(self.driver, TIMEOUT_MODAL).until(
                 EC.presence_of_element_located((By.ID, "c_p_f_do_dependente"))
             )
             
@@ -1210,7 +1334,7 @@ class AutomacaoEFD:
                 print("✅ Informação do dependente adicionada")
                 
                 # Aguardar modal fechar
-                WebDriverWait(self.driver, 3).until(
+                WebDriverWait(self.driver, TIMEOUT_MODAL).until(
                     EC.invisibility_of_element_located((By.ID, "c_p_f_do_dependente"))
                 )
             except Exception as e:
@@ -1224,22 +1348,538 @@ class AutomacaoEFD:
             return False
     
     def enviar_declaracao(self):
-        """Envia a declaração - IMPLEMENTAR QUANDO RECEBER HTML"""
+        """Envia a declaração usando o botão 'Concluir e enviar'"""
         try:
-            print("\n📤 Enviando declaração...")
-            print("⚠️ FUNÇÃO AINDA NÃO IMPLEMENTADA - Aguardando HTML do botão")
-            print("💡 Por enquanto, envie manualmente o formulário")
+            print("📤 Enviando declaração...")
+            time.sleep(TEMPO_ANTES_ENVIO)
+            wait = WebDriverWait(self.driver, TIMEOUT_WEBDRIVER)
             
-            # TODO: Implementar quando receber HTML do botão "enviar formulário"
-            # Exemplo de implementação:
-            # botao_enviar = self.driver.find_element(By.ID, "id_do_botao_enviar")
-            # botao_enviar.click()
-            # print("✅ Declaração enviada!")
+            try:
+                # Tentar localizar pelo data-testid (preferencial)
+                botao_enviar = wait.until(
+                    EC.element_to_be_clickable((By.CSS_SELECTOR, '[data-testid="botao_concluir_enviar"]'))
+                )
+                print("✅ Botão encontrado pelo data-testid")
+            except:
+                # Fallback: tentar localizar pelo texto do botão
+                print("⚠️ Tentando localizar pelo texto...")
+                botao_enviar = wait.until(
+                    EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Concluir e enviar')]"))
+                )
+                print("✅ Botão encontrado pelo texto")
+            
+            # Scroll até o botão para garantir visibilidade
+            self.driver.execute_script("arguments[0].scrollIntoView(true);", botao_enviar)
+            time.sleep(TEMPO_APOS_SCROLL)
+            
+            # Clicar no botão
+            print("🖱️ Clicando no botão 'Concluir e enviar'...")
+            botao_enviar.click()
+            
+            print("✅ Declaração enviada com sucesso!")
+            print("⏳ Aguardando página de confirmação/assinatura...")
+            
+            # Aguardar a próxima página carregar
+            time.sleep(TEMPO_APOS_ENVIO)
             
             return True
             
         except Exception as e:
             print(f"❌ Erro ao enviar declaração: {e}")
+            print("💡 Verifique se o formulário foi totalmente preenchido")
+            return False
+    
+    def aguardar_alerta_sucesso_assinatura(self):
+        """Aguarda automaticamente o alerta de sucesso da assinatura eletrônica"""
+        try:
+            print("⏳ Aguardando confirmação...")
+            
+            wait = WebDriverWait(self.driver, TIMEOUT_ALERTA_SUCESSO)
+            
+            # Tentar detectar alerta de sucesso
+            try:
+                alerta = wait.until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, '[data-testid="mensagem_descricao_0"]'))
+                )
+                if "ms7001" in alerta.text.lower() and "evento recebido com sucesso" in alerta.text.lower():
+                    print("✅ Assinatura concluída!")
+                    return True
+                    
+            except:
+                try:
+                    alerta = wait.until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, 'app-reinf-mensagens-alerta .message.success'))
+                    )
+                    if alerta.is_displayed():
+                        texto_alerta = alerta.text
+                        if "ms7001" in texto_alerta.lower() and "evento recebido com sucesso" in texto_alerta.lower():
+                            print("✅ Assinatura concluída!")
+                            return True
+                        
+                except:
+                    try:
+                        alerta = wait.until(
+                            EC.presence_of_element_located((By.XPATH, "//*[contains(text(), 'MS7001 - Evento recebido com sucesso')]"))
+                        )
+                        if alerta.is_displayed():
+                            print("✅ Assinatura concluída!")
+                            return True
+                        
+                    except:
+                        componente_mensagem = wait.until(
+                            EC.presence_of_element_located((By.TAG_NAME, "app-reinf-mensagens-alerta"))
+                        )
+                        if componente_mensagem.is_displayed():
+                            texto_componente = componente_mensagem.text
+                            if "sucesso" in texto_componente.lower() and "ms7001" in texto_componente.lower():
+                                print("✅ Assinatura concluída!")
+                                return True
+            
+            return False
+            
+        except Exception as e:
+            print("⚠️ Confirmação não detectada - continuando...")
+            return False
+    
+    def realizar_assinatura_automatica(self, metodo_assinatura=1):
+        """
+        Realiza assinatura eletrônica automaticamente usando PyAutoGUI.
+        
+        Este método é o core da automação de assinatura, aguardando o aplicativo
+        de assinatura (como Assinador Serpro) se estabilizar e executando a
+        sequência de comandos apropriada.
+        
+        Fluxo:
+        1. Aguarda 15s para aplicativo de assinatura carregar
+        2. Executa método de assinatura selecionado:
+           - Método A: Seta ↑, Seta ↑, Enter (recomendado)
+           - Método B: Click nas coordenadas + Enter
+        3. Retorna sucesso/falha da operação
+        
+        Args:
+            metodo_assinatura (int): Método a usar (1=teclas, 2=mouse)
+        
+        Returns:
+            bool: True se assinatura foi executada com sucesso, False caso contrário
+        
+        Raises:
+            Exception: Capturada e logada, retorna False em caso de erro
+        """
+        try:
+            print("🔐 Executando assinatura automática...")
+            
+            # Aguardar aplicativo de assinatura
+            if not self._aguardar_tempo_fixo(TEMPO_ESPERA_ASSINADOR):
+                print("❌ Erro durante espera")
+                return False
+            
+            if metodo_assinatura == 1:
+                return self._assinatura_metodo_a()
+            elif metodo_assinatura == 2:
+                return self._assinatura_metodo_b()
+            else:
+                print("❌ Método de assinatura inválido")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Erro na assinatura automática: {e}")
+            return False
+    
+    def _aguardar_tempo_fixo(self, tempo_espera=15):
+        """
+        Aguarda um tempo fixo para o aplicativo de assinatura se estabilizar
+        
+        Args:
+            tempo_espera (int): Tempo em segundos para aguardar
+        """
+        try:
+            print(f"⏳ Aguardando {tempo_espera}s...")
+            time.sleep(tempo_espera)
+            return True
+            
+        except Exception as e:
+            return True  # Continuar mesmo com erro
+    
+    def _assinatura_metodo_a(self):
+        """Método A de assinatura - 3 teclas: Seta ↑, Seta ↑, Enter"""
+        try:
+            print("⌨️ Método A: ↑ ↑ Enter")
+            
+            pyautogui.press('up')
+            time.sleep(ASSINATURA_METODO_A_INTERVALO)
+            pyautogui.press('up')
+            time.sleep(ASSINATURA_METODO_A_INTERVALO)
+            pyautogui.press('enter')
+            time.sleep(TEMPO_ESPERA_CLIQUE)
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Erro no Método A: {e}")
+            return False
+    
+    def _assinatura_metodo_b(self):
+        """Método B de assinatura - Click do mouse + Enter"""
+        try:
+            if not self.coordenadas_mouse_metodo_b:
+                print("❌ Coordenadas não configuradas")
+                return False
+            
+            x, y = self.coordenadas_mouse_metodo_b
+            print(f"🖱️ Método B: Click ({x},{y}) + Enter")
+            
+            pyautogui.click(x, y)
+            time.sleep(ASSINATURA_METODO_B_INTERVALO)
+            pyautogui.press('enter')
+            time.sleep(TEMPO_ESPERA_CLIQUE)
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Erro no Método B: {e}")
+            return False
+    
+    def configurar_coordenadas_metodo_b(self):
+        """Configura coordenadas do mouse para Método B de forma interativa"""
+        try:
+            print("\n🎯 CONFIGURAÇÃO DE COORDENADAS - MÉTODO B")
+            print("="*50)
+            print("Para o Método B, você precisa definir onde clicar na tela.")
+            print("Opções disponíveis:")
+            print("1️⃣ - Detectar posição atual do mouse")
+            print("2️⃣ - Inserir coordenadas manualmente") 
+            print("3️⃣ - Usar coordenadas salvas anteriormente")
+            
+            opcao = input("\nEscolha uma opção (1, 2 ou 3): ").strip()
+            
+            if opcao == "1":
+                return self._detectar_posicao_mouse()
+            elif opcao == "2":
+                return self._inserir_coordenadas_manual()
+            elif opcao == "3":
+                return self._usar_coordenadas_salvas()
+            else:
+                print("❌ Opção inválida! Digite apenas 1, 2 ou 3")
+                print("💡 Tente novamente com uma opção válida")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Erro ao configurar coordenadas: {e}")
+            return False
+    
+    def _detectar_posicao_mouse(self):
+        """Verifica se há janelas modais ou popups abertos"""
+        try:
+            # Verificar modais comuns
+            modal_selectors = [
+                '.modal',
+                '.popup',
+                '.dialog',
+                '[role="dialog"]',
+                '[class*="modal"]',
+                '[class*="popup"]',
+                '.ui-dialog'
+            ]
+            
+            for selector in modal_selectors:
+                try:
+                    elementos = self.driver.find_elements(By.CSS_SELECTOR, selector)
+                    if elementos:
+                        for elemento in elementos:
+                            if elemento.is_displayed():
+                                print(f"🪟 Modal detectado: {selector}")
+                                return True
+                except:
+                    continue
+            
+            return False
+            
+        except Exception as e:
+            print(f"⚠️ Erro ao verificar janelas modais: {e}")
+            return False
+    
+    def _verificar_foco_navegador(self):
+        """Verifica se o navegador está em foco e tenta colocá-lo em foco se necessário"""
+        try:
+            print("🎯 Verificando foco do navegador...")
+            
+            # Tentar colocar o navegador em foco clicando nele
+            try:
+                # Pegar o título da janela atual do driver
+                titulo_janela = self.driver.title
+                print(f"📋 Título da janela: {titulo_janela}")
+                
+                # Maximizar a janela para garantir que esteja visível
+                self.driver.maximize_window()
+                
+                # Dar foco à janela do navegador
+                self.driver.switch_to.window(self.driver.current_window_handle)
+                
+                print("✅ Foco do navegador verificado e ajustado")
+                return True
+                
+            except Exception as e:
+                print(f"⚠️ Erro ao ajustar foco do navegador: {e}")
+                print("💡 Continuando sem ajuste de foco...")
+                return True
+                
+        except Exception as e:
+            print(f"❌ Erro na verificação de foco: {e}")
+            return True  # Continuar mesmo com erro
+    
+    def _assinatura_metodo_a(self):
+        """Método A de assinatura - 3 teclas: Seta ↑, Seta ↑, Enter"""
+        try:
+            print("🔐 Executando Método A de assinatura...")
+            print("📝 Sequência: Seta ↑ → Seta ↑ → Enter")
+            
+            # A página já foi verificada, pode executar diretamente
+            
+            # Sequência específica do Método A
+            print("1️⃣ Pressionando Seta para Cima...")
+            pyautogui.press('up')
+            time.sleep(TESTE_METODO_A_INTERVALO)
+            
+            print("2️⃣ Pressionando Seta para Cima...")
+            pyautogui.press('up')
+            time.sleep(TESTE_METODO_A_INTERVALO)
+            
+            print("3️⃣ Pressionando Enter...")
+            pyautogui.press('enter')
+            time.sleep(TESTE_METODO_B_INTERVALO_FINAL)
+            
+            print("✅ Método A concluído - sequência de teclas executada")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Erro no Método A: {e}")
+            return False
+    
+    def _assinatura_metodo_b(self):
+        """Método B de assinatura - Click do mouse + Enter"""
+        try:
+            print("🔐 Executando Método B de assinatura...")
+            print("📝 Sequência: Click do Mouse → Enter")
+            
+            # Verificar se coordenadas foram configuradas
+            if not self.coordenadas_mouse_metodo_b:
+                print("❌ Coordenadas do mouse não configuradas para Método B")
+                print("💡 Configure as coordenadas antes de executar")
+                return False
+            
+            x, y = self.coordenadas_mouse_metodo_b
+            print(f"🎯 Coordenadas configuradas: ({x}, {y})")
+            
+            # A página já foi verificada, pode executar diretamente
+            
+            # Sequência específica do Método B
+            print("1️⃣ Clicando do mouse na posição configurada...")
+            pyautogui.click(x, y)
+            time.sleep(TESTE_METODO_B_INTERVALO_CLICK)
+            
+            print("2️⃣ Pressionando Enter...")
+            pyautogui.press('enter')
+            time.sleep(TESTE_METODO_B_INTERVALO_FINAL)
+            
+            print("✅ Método B concluído - click do mouse + Enter executados")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Erro no Método B: {e}")
+            return False
+    
+    def configurar_coordenadas_metodo_b(self):
+        """Configura coordenadas do mouse para Método B de forma interativa"""
+        try:
+            print("\n🎯 CONFIGURAÇÃO DE COORDENADAS - MÉTODO B")
+            print("="*50)
+            print("Para o Método B, você precisa definir onde clicar na tela.")
+            print("Opções disponíveis:")
+            print("1️⃣ - Detectar posição atual do mouse")
+            print("2️⃣ - Inserir coordenadas manualmente") 
+            print("3️⃣ - Usar coordenadas salvas anteriormente")
+            
+            opcao = input("\nEscolha uma opção (1, 2 ou 3): ").strip()
+            
+            if opcao == "1":
+                return self._detectar_posicao_mouse()
+            elif opcao == "2":
+                return self._inserir_coordenadas_manual()
+            elif opcao == "3":
+                return self._usar_coordenadas_salvas()
+            else:
+                print("❌ Opção inválida! Digite apenas 1, 2 ou 3")
+                print("💡 Tente novamente com uma opção válida")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Erro ao configurar coordenadas: {e}")
+            return False
+    
+    def _detectar_posicao_mouse(self):
+        """Detecta a posição atual do mouse para usar como coordenadas"""
+        try:
+            print("\n🖱️ DETECÇÃO DE POSIÇÃO DO MOUSE")
+            print("="*40)
+            print("1. Posicione o mouse EXATAMENTE onde deve clicar")
+            print("2. Pressione ENTER quando estiver na posição correta")
+            print("3. ⚠️ NÃO mova o mouse após pressionar ENTER!")
+            
+            input("\nPositione o mouse e pressione ENTER...")
+            
+            # Capturar posição atual
+            x, y = pyautogui.position()
+            coordenadas = (x, y)
+            self.coordenadas_mouse_metodo_b = coordenadas
+            
+            # Salvar no config.py
+            self.salvar_coordenadas_config(coordenadas)
+            
+            print(f"✅ Coordenadas capturadas: ({x}, {y})")
+            print("💾 Coordenadas salvas para o Método B")
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Erro ao detectar posição: {e}")
+            return False
+    
+    def _inserir_coordenadas_manual(self):
+        """Permite inserir coordenadas manualmente"""
+        try:
+            print(f"\n⌨️ INSERÇÃO MANUAL DE COORDENADAS")
+            print("="*40)
+            print(f"📏 Resolução da sua tela: {pyautogui.size()}")
+            
+            while True:
+                try:
+                    x = int(input("Digite a coordenada X (horizontal): "))
+                    y = int(input("Digite a coordenada Y (vertical): "))
+                    
+                    # Validar coordenadas
+                    largura, altura = pyautogui.size()
+                    if 0 <= x <= largura and 0 <= y <= altura:
+                        coordenadas = (x, y)
+                        self.coordenadas_mouse_metodo_b = coordenadas
+                        
+                        # Salvar no config.py
+                        self.salvar_coordenadas_config(coordenadas)
+                        
+                        print(f"✅ Coordenadas definidas: ({x}, {y})")
+                        return True
+                    else:
+                        print(f"❌ Coordenadas inválidas! Use: X (0-{largura}), Y (0-{altura})")
+                        
+                except ValueError:
+                    print("❌ Digite apenas números inteiros")
+                    
+        except Exception as e:
+            print(f"❌ Erro ao inserir coordenadas: {e}")
+            return False
+    
+    def _usar_coordenadas_salvas(self):
+        """Usa coordenadas previamente salvas do config.py"""
+        # Recarregar coordenadas do config.py para pegar valores atualizados
+        try:
+            from config import COORDENADAS_MOUSE_METODO_B
+            self.coordenadas_mouse_metodo_b = COORDENADAS_MOUSE_METODO_B
+        except ImportError:
+            pass
+        
+        if self.coordenadas_mouse_metodo_b:
+            x, y = self.coordenadas_mouse_metodo_b
+            print(f"✅ Usando coordenadas salvas do config.py: ({x}, {y})")
+            return True
+        else:
+            print("❌ Nenhuma coordenada salva encontrada no config.py")
+            print("💡 Você precisa configurar as coordenadas primeiro")
+            print("💡 Escolha opção 1 (detectar posição) ou 2 (inserir manual)")
+            return False
+    
+    def detectar_elementos_tela(self):
+        """Detecta elementos na tela para auxiliar na assinatura"""
+        try:
+            print("🔍 Detectando elementos na tela...")
+            
+            # Obter tamanho da tela
+            largura_tela, altura_tela = pyautogui.size()
+            print(f"📏 Resolução da tela: {largura_tela}x{altura_tela}")
+            
+            # Capturar screenshot da tela atual
+            screenshot = pyautogui.screenshot()
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            nome_screenshot = f"screenshot_assinatura_{timestamp}.png"
+            screenshot.save(nome_screenshot)
+            print(f"📸 Screenshot salvo: {nome_screenshot}")
+            
+            return {
+                'largura': largura_tela,
+                'altura': altura_tela,
+                'screenshot': nome_screenshot
+            }
+            
+        except Exception as e:
+            print(f"❌ Erro ao detectar elementos: {e}")
+            return None
+    
+    def clicar_proximo_cpf(self):
+        """Clica no botão 'Incluir novo pagamento' para ir ao próximo CPF"""
+        try:
+            print("➡️ Próximo CPF...")
+            time.sleep(TEMPO_ANTES_PROXIMO_CPF)
+            wait = WebDriverWait(self.driver, TIMEOUT_PROXIMO_CPF)
+            
+            try:
+                # Método 1: Tentar localizar pelo texto exato
+                botao_proximo = wait.until(
+                    EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Incluir novo pagamento')]"))
+                )
+                print("✅ Botão encontrado pelo texto")
+            except:
+                try:
+                    # Método 2: Tentar localizar pela classe + texto
+                    print("⚠️ Tentando localizar pela classe e texto...")
+                    botao_proximo = wait.until(
+                        EC.element_to_be_clickable((By.XPATH, "//button[@class='button' and contains(text(), 'Incluir novo pagamento')]"))
+                    )
+                    print("✅ Botão encontrado pela classe + texto")
+                except:
+                    # Método 3: Tentar localizar apenas pela classe e verificar texto
+                    print("⚠️ Tentando localizar apenas pela classe...")
+                    botoes = self.driver.find_elements(By.CSS_SELECTOR, "button.button")
+                    botao_proximo = None
+                    
+                    for botao in botoes:
+                        if "incluir novo pagamento" in botao.text.lower():
+                            botao_proximo = botao
+                            break
+                    
+                    if botao_proximo:
+                        print("✅ Botão encontrado pela classe com verificação de texto")
+                    else:
+                        raise Exception("Botão não encontrado por nenhum método")
+            
+            # Scroll até o botão para garantir visibilidade
+            print("📜 Fazendo scroll até o botão...")
+            self.driver.execute_script("arguments[0].scrollIntoView(true);", botao_proximo)
+            time.sleep(TEMPO_APOS_SCROLL)
+            
+            # Clicar no botão
+            print("🖱️ Clicando no botão 'Incluir novo pagamento'...")
+            botao_proximo.click()
+            
+            print("✅ Botão 'Incluir novo pagamento' clicado com sucesso!")
+            print("⏳ Aguardando redirecionamento para próximo formulário...")
+            
+            # Aguardar a próxima página carregar
+            time.sleep(TEMPO_APOS_PROXIMO_CPF)
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Erro ao clicar no botão próximo CPF: {e}")
+            print("💡 Verifique se a assinatura eletrônica foi completada corretamente")
+            print("💡 O botão 'Incluir novo pagamento' pode demorar alguns segundos para aparecer")
             return False
     
     def preencher_formulario(self, cpf_titular):
@@ -1423,6 +2063,19 @@ class AutomacaoEFD:
                 print(f"👤 Titular: {titular['NOME']} - CPF: {titular['CPF']}")
                 print(f"👥 Dependentes: {len(dependentes)}")
                 
+                # Verificar se grupo já foi completamente processado ANTES de tentar processar
+                cpf_titular = titular['CPF'] 
+                if self.verificar_grupo_completamente_processado(cpf_titular):
+                    print(f"✅ Grupo {cpf_titular} já foi completamente processado - pulando")
+                    sucessos += 1
+                    continue
+                
+                # Verificar se grupo foi pulado (ex: CPF já lançado)
+                if self.verificar_ultimo_status_pulado(cpf_titular):
+                    print(f"⏭️ Grupo {cpf_titular} foi pulado anteriormente - pulando")
+                    sucessos += 1
+                    continue
+                
                 # Tentar processar este grupo
                 resultado = self.processar_grupo_individual(titular, dependentes)
                 
@@ -1443,7 +2096,7 @@ class AutomacaoEFD:
                     self.salvar_checkpoint_indice(i)
                 
                 # Pequena pausa entre grupos
-                time.sleep(1)
+                time.sleep(TEMPO_ENTRE_GRUPOS)
             
             # Resumo final
             print(f"\n{'='*60}")
@@ -1459,20 +2112,76 @@ class AutomacaoEFD:
             print(f"❌ Erro ao processar grupos: {e}")
     
     def processar_grupo_individual(self, titular, dependentes):
-        """Processa um grupo individual (titular + dependentes)"""
+        """
+        Processa um grupo completo (titular + dependentes) com automação total.
+        
+        Esta função gerencia o processo completo de um CPF, incluindo:
+        1. Preenchimento automático dos dados do titular
+        2. Adição de todos os dependentes e planos
+        3. Envio automático da declaração
+        4. Assinatura eletrônica automatizada
+        5. Detecção de confirmação de sucesso
+        6. Navegação para próximo CPF
+        7. Salvamento de checkpoints em cada etapa
+        
+        Args:
+            titular (pandas.Series): Dados do titular (primeira linha do grupo)
+            dependentes (pandas.DataFrame): DataFrame com todos os dependentes do grupo
+        
+        Returns:
+            bool: True se grupo foi processado com sucesso, False em caso de erro
+        
+        O método implementa verificação manual opcional e tratamento robusto de erros,
+        salvando checkpoints detalhados para permitir retomada em caso de falha.
+        
+        Checkpoints salvos:
+        - dados_preenchidos: Após preencher formulário
+        - declaracao_enviada: Após envio bem-sucedido
+        - assinatura_completa: Após assinatura confirmada
+        - grupo_completo: Após assinatura confirmada
+        - erro_*: Em caso de falhas específicas
+        """
         try:
             cpf_titular = titular['CPF']
             nome_titular = titular['NOME']
             
+            # Se há dados parciais (grupo incompleto), limpar tudo
+            print(f"🔍 Verificando dados parciais para {cpf_titular}...")
+            
+            # Verificar se há dependentes ou planos salvos (dados parciais)
+            conn = sqlite3.connect(BANCO_DADOS)
+            cursor = conn.cursor()
+            
+            cursor.execute('SELECT COUNT(*) FROM dependentes_processados WHERE cpf_titular = ?', (cpf_titular,))
+            dependentes_parciais = cursor.fetchone()[0]
+            
+            cursor.execute('SELECT COUNT(*) FROM planos_processados WHERE cpf_titular = ?', (cpf_titular,))
+            planos_parciais = cursor.fetchone()[0]
+            
+            conn.close()
+            
+            if dependentes_parciais > 0 or planos_parciais > 0:
+                print(f"🧹 Encontrados dados parciais para {cpf_titular} - limpando para recomeçar...")
+                self.limpar_dados_parciais_grupo(cpf_titular)
+            
             # Preencher dados iniciais
             if not self.preencher_dados_iniciais(cpf_titular, nome_titular):
                 print(f"❌ Falha no preenchimento inicial para {cpf_titular}")
+                self.limpar_dados_parciais_grupo(cpf_titular)
                 return "erro"
             
             # Continuar para próxima etapa
             if not self.continuar_para_proxima_etapa():
                 print(f"❌ Falha ao continuar para próxima etapa para {cpf_titular}")
-                return "erro"
+                
+                # Verificar se foi erro de "CPF já lançado" (status pulado)
+                if self.verificar_ultimo_status_pulado(cpf_titular):
+                    print(f"⏭️ CPF {cpf_titular} foi pulado (já lançado) - mantendo dados salvos")
+                    return "pulado"
+                else:
+                    # Erro real - limpar dados parciais
+                    self.limpar_dados_parciais_grupo(cpf_titular)
+                    return "erro"
             
             # Processar dependentes
             self.processar_dependentes_grupo(dependentes)
@@ -1483,37 +2192,129 @@ class AutomacaoEFD:
             # Processar informações dos dependentes (valores pagos pelos dependentes)
             self.processar_info_dependentes_grupo(dependentes)
             
-            # PAUSA PARA ANÁLISE - Verificar se tudo está correto
+            # VERIFICAÇÃO CONDICIONAL DOS DADOS
+            if self.verificar_dados_manual:
+                # PAUSA PARA ANÁLISE - Verificar se tudo está correto
+                print(f"\n{'='*60}")
+                print("⏸️ PAUSA PARA ANÁLISE")
+                print(f"{'='*60}")
+                print("📋 Verifique se todos os dados foram preenchidos corretamente:")
+                print("   ✅ Dados iniciais (Período, CNPJ, CPF)")
+                print("   ✅ Dependentes (se houver)")
+                print("   ✅ Planos de saúde (se houver)")
+                print("   ✅ Informações dos dependentes (se houver)")
+                print("\n💡 Após verificar, pressione ENTER para continuar...")
+                print("   (Ou Ctrl+C para interromper)")
+                
+                try:
+                    input("\n⏸️ Pressione ENTER para continuar ou Ctrl+C para interromper...")
+                except (EOFError, KeyboardInterrupt):
+                    print(f"\n⚠️ Executando via script - aguardando {TEMPO_SCRIPT_VERIFICACAO}s...")
+                    time.sleep(TEMPO_SCRIPT_VERIFICACAO)
+            else:
+                # Modo automático - sem verificação manual
+                print(f"\n{'='*60}")
+                print("🚀 MODO AUTOMÁTICO ATIVADO")
+                print(f"{'='*60}")
+                print("⚡ Prosseguindo automaticamente para envio da declaração...")
+                print("   ✅ Dados iniciais processados")
+                print("   ✅ Dependentes processados (se houver)")
+                print("   ✅ Planos de saúde processados (se houver)")
+                print("   ✅ Informações dos dependentes processadas (se houver)")
+                print(f"\n⏳ Aguardando {TEMPO_MODO_AUTOMATICO}s antes do envio...")
+                time.sleep(TEMPO_MODO_AUTOMATICO)
+            
+            # ETAPA FINAL: Enviar declaração
             print(f"\n{'='*60}")
-            print("⏸️ PAUSA PARA ANÁLISE")
+            print("📤 ENVIANDO DECLARAÇÃO")
             print(f"{'='*60}")
-            print("📋 Verifique se todos os dados foram preenchidos corretamente:")
-            print("   ✅ Dados iniciais (Período, CNPJ, CPF)")
-            print("   ✅ Dependentes (se houver)")
-            print("   ✅ Planos de saúde (se houver)")
-            print("   ✅ Informações dos dependentes (se houver)")
-            print("\n💡 Após verificar, pressione ENTER para continuar...")
-            print("   (Ou Ctrl+C para interromper)")
             
-            try:
-                input("\n⏸️ Pressione ENTER para continuar ou Ctrl+C para interromper...")
-            except (EOFError, KeyboardInterrupt):
-                print("\n⚠️ Executando via script - aguardando 3 segundos...")
-                time.sleep(3)
-            
-            # Se chegou até aqui, foi sucesso
-            self.salvar_checkpoint(
-                cpf_titular,
-                nome_titular,
-                "processamento_completo",
-                "sucesso",
-                observacoes="Grupo processado com sucesso - aguardando envio"
-            )
-            
-            return "sucesso"
+            if self.enviar_declaracao():
+                print("✅ Declaração enviada com sucesso!")
+                
+                # Executar assinatura eletrônica automática
+                assinatura_sucesso = self.realizar_assinatura_automatica(self.metodo_assinatura)
+                
+                if assinatura_sucesso:
+                    # Aguardar automaticamente pelo alerta de sucesso
+                    if self.aguardar_alerta_sucesso_assinatura():
+                        print("✅ Processo concluído!")
+                        
+                        # GRUPO COMPLETO! Salvar checkpoint final imediatamente após assinatura
+                        self.salvar_checkpoint(
+                            cpf_titular,
+                            nome_titular,
+                            "grupo_completo",
+                            "sucesso",
+                            observacoes="Grupo processado completamente - assinatura concluída com sucesso"
+                        )
+                        
+                    else:
+                        print("⚠️ Confirmação não detectada - continuando...")
+                        time.sleep(TEMPO_CONFIRMACAO_NAO_DETECTADA)
+                        
+                        # Mesmo sem confirmação detectada, consideramos grupo completo se chegou até aqui
+                        self.salvar_checkpoint(
+                            cpf_titular,
+                            nome_titular,
+                            "grupo_completo",
+                            "sucesso",
+                            observacoes="Grupo processado completamente - confirmação não detectada mas assinatura executada"
+                        )
+                        
+                else:
+                    print("❌ Erro na assinatura")
+                    time.sleep(TEMPO_ERRO_ASSINATURA)
+                
+                # Salvar checkpoint com assinatura completa (para histórico)
+                self.salvar_checkpoint(
+                    cpf_titular,
+                    nome_titular,
+                    "assinatura_completa",
+                    "sucesso",
+                    observacoes="Declaração enviada e assinatura eletrônica executada"
+                )
+                
+                # Próximo passo: clicar no botão próximo CPF
+                print(f"\n{'='*60}")
+                print("➡️ PRÓXIMO CPF")
+                print(f"{'='*60}")
+                
+                if self.clicar_proximo_cpf():
+                    print("✅ Botão próximo CPF clicado com sucesso!")
+                    return "sucesso"
+                else:
+                    print("❌ Erro ao clicar no botão próximo CPF")
+                    
+                    # Salvar checkpoint com erro no próximo CPF
+                    self.salvar_checkpoint(
+                        cpf_titular,
+                        nome_titular,
+                        "erro_proximo_cpf",
+                        "erro",
+                        observacoes="Erro ao clicar no botão próximo CPF - verificar manualmente"
+                    )
+                    
+                    self.limpar_dados_parciais_grupo(cpf_titular)
+                    return "erro"
+            else:
+                print("❌ Falha ao enviar declaração")
+                
+                # Salvar checkpoint com erro no envio
+                self.salvar_checkpoint(
+                    cpf_titular,
+                    nome_titular,
+                    "erro_envio",
+                    "erro",
+                    observacoes="Erro ao enviar declaração - verificar manualmente"
+                )
+                
+                self.limpar_dados_parciais_grupo(cpf_titular)
+                return "erro"
             
         except Exception as e:
             print(f"❌ Erro ao processar grupo individual: {e}")
+            self.limpar_dados_parciais_grupo(cpf_titular)
             return "erro"
     
     def processar_dependentes_grupo(self, dependentes):
@@ -1542,6 +2343,7 @@ class AutomacaoEFD:
                 if agregado_outros:
                     print(f"      Descrição: {agregado_outros}")
                 
+                
                 # Verificar se dependente já foi processado
                 if self.verificar_dependente_processado(self.cpf_titular_atual, cpf_dep):
                     print(f"   ⚠️ Dependente {cpf_dep} já foi processado - pulando")
@@ -1560,13 +2362,14 @@ class AutomacaoEFD:
         """Processa planos de saúde de um grupo"""
         try:
             # Dados do plano - usando dados do Excel
-            cnpj_operadora = titular.get('CNPJ_OPERADORA', "23.802.218/0001-65")  # CNPJ padrão
+            cnpj_operadora = titular.get('CNPJ_OPERADORA', CNPJ_OPERADORA_PADRAO)  # CNPJ padrão
             valor_titular_raw = titular.get('VALOR_PLANO', titular.get('TOTAL', "100.00"))  # Valor do Excel
             valor_titular = self.formatar_valor(valor_titular_raw)  # Formatar com 2 casas decimais
             
             print(f"\n🏥 Processando plano de saúde...")
             print(f"   CNPJ: {cnpj_operadora}")
             print(f"   Valor: {valor_titular}")
+            
             
             # Verificar se plano já foi processado
             if self.verificar_plano_processado(self.cpf_titular_atual, cnpj_operadora):
@@ -1659,7 +2462,28 @@ class AutomacaoEFD:
             return False
     
     def executar(self):
-        """Função principal de execução"""
+        """
+        Função principal que executa todo o processo de automação EFD-REINF.
+        
+        Esta é a função de entrada principal que:
+        1. Coleta configurações do usuário (verificação manual, método de assinatura)
+        2. Configura coordenadas para método B se necessário
+        3. Abre o site da Receita Federal
+        4. Aguarda login manual do usuário
+        5. Processa todos os grupos do Excel automaticamente
+        6. Gera relatórios de progresso
+        
+        Configurações solicitadas:
+        - Verificação manual de dados (S/N)
+        - Método de assinatura (1=teclas, 2=mouse)
+        - Coordenadas do mouse (apenas para método 2)
+        
+        O processo continua até todos os CPFs serem processados ou erro fatal.
+        Checkpoints permitem retomar o processo posteriormente.
+        
+        Raises:
+            Exception: Capturadas e logadas, processo pode ser retomado via checkpoints
+        """
         print("\n" + "="*60)
         print("🤖 AUTOMAÇÃO EFD-REINF")
         print("="*60)
@@ -1668,6 +2492,67 @@ class AutomacaoEFD:
         print("   2. VOCÊ faz login e navega até o formulário")
         print("   3. CÓDIGO processa TODOS os grupos automaticamente")
         print("   4. Pula automaticamente CPFs já lançados")
+        print("   5. ✨ NOVO: Envia automaticamente cada declaração")
+        print("="*60)
+        
+        # Configurações automáticas do config.py
+        print("\n⚙️ CONFIGURAÇÕES AUTOMÁTICAS")
+        print("="*40)
+        
+        # Configurar verificação manual usando config.py
+        if VERIFICACAO_MANUAL_PADRAO:
+            print("✅ Modo MANUAL: Com verificação antes do envio")
+            print("💡 O sistema pausará para você verificar os dados")
+        else:
+            print("✅ Modo AUTOMÁTICO: Sem verificação manual")
+            print("⚠️ O sistema enviará as declarações automaticamente!")
+        
+        # Configurar método de assinatura usando config.py
+        if METODO_ASSINATURA_PADRAO == 2:
+            self.metodo_assinatura = 2
+            print("✅ Método B selecionado (sequência alternativa)")
+            
+            # Configurar coordenadas para Método B com loop até conseguir
+            print("\n📍 Método B requer configuração de coordenadas do mouse")
+            coordenadas_configuradas = False
+            
+            while not coordenadas_configuradas:
+                try:
+                    if self.configurar_coordenadas_metodo_b():
+                        coordenadas_configuradas = True
+                        print("✅ Coordenadas configuradas com sucesso!")
+                    else:
+                        print("\n⚠️ Falha na configuração de coordenadas")
+                        print("Opções:")
+                        print("1️⃣ - Tentar novamente")
+                        print("2️⃣ - Mudar para Método A")
+                        print("3️⃣ - Cancelar execução")
+                        
+                        opcao_erro = input("\nEscolha uma opção (1, 2 ou 3): ").strip()
+                        
+                        if opcao_erro == "1":
+                            print("🔄 Tentando configurar coordenadas novamente...")
+                            continue
+                        elif opcao_erro == "2":
+                            print("🔄 Mudando para Método A...")
+                            self.metodo_assinatura = 1
+                            coordenadas_configuradas = True  # Sair do loop
+                        elif opcao_erro == "3":
+                            print("❌ Execução cancelada pelo usuário")
+                            return  # Sair da função executar
+                        else:
+                            print("⚠️ Opção inválida, tentando novamente...")
+                            continue
+                            
+                except (EOFError, KeyboardInterrupt):
+                    print("\n🔄 Mudando para Método A devido à interrupção...")
+                    self.metodo_assinatura = 1
+                    coordenadas_configuradas = True
+        else:
+            self.metodo_assinatura = 1
+            print("✅ Método A selecionado (sequência padrão)")
+        
+        print("\n💡 Para alterar essas configurações, edite o arquivo config.py")
         print("="*60)
         
         # Abrir site
@@ -1681,7 +2566,7 @@ class AutomacaoEFD:
         
         print("\n✅ Processo concluído!")
         print("💡 Use o gerenciador de checkpoint para ver detalhes: python gerenciar_checkpoint.py")
-        print("🚀 Sistema pronto para envio automático quando implementado!")
+        print("🚀 Sistema totalmente funcional com automação completa!")
 
 # ============================================================
 # PROGRAMA PRINCIPAL

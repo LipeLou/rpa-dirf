@@ -6,4 +6,6 @@ webdriver-manager==4.0.1
 undetected-chromedriver==3.5.5
 setuptools>=65.0.0
 selenium-stealth==1.0.6
+PyAutoGUI==0.9.54
+Pillow>=10.0.0
 

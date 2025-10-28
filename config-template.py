@@ -1,0 +1,165 @@
+"""
+Arquivo BASE de Configuração - Automação EFD-REINF
+==============================================
+
+Este arquivo centraliza todas as configurações do sistema de automação.
+Modifique os valores conforme necessário para seu ambiente e dados.
+"""
+
+# ============================================================
+# CONFIGURAÇÕES GERAIS
+# ============================================================
+
+# URL base do sistema EFD-REINF
+URL_BASE = 'https://cav.receita.fazenda.gov.br/ecac/Aplicacao.aspx?id=10019&origem=menu'
+
+# Arquivo Excel com os dados para processamento
+ARQUIVO_EXCEL = ''
+
+# Nome da planilha/aba no Excel
+PLANILHA = ''
+
+# Arquivo do banco de dados para checkpoints
+BANCO_DADOS = ''
+
+# ============================================================
+# DADOS DA EMPRESA
+# ============================================================
+
+# Período de apuração (formato MM/AAAA)
+PERIODO_APURACAO = ""
+
+# CNPJ da empresa (formato 00.000.000/0000-00)
+CNPJ_EMPRESA = ""
+
+# CNPJ padrão da operadora de saúde (formato 00.000.000/0000-00)
+CNPJ_OPERADORA_PADRAO = ""
+
+# ============================================================
+# CONFIGURAÇÕES DE TEMPO E ESPERA
+# ============================================================
+
+# Tempo de espera para o aplicativo de assinatura (segundos)
+TEMPO_ESPERA_ASSINADOR = 10
+
+# Timeout padrão para WebDriverWait (segundos)
+TIMEOUT_WEBDRIVER = 10
+
+# Timeout para aguardar alerta de sucesso da assinatura (segundos)
+TIMEOUT_ALERTA_SUCESSO = 60
+
+# Timeout para localizar próximo CPF (segundos)
+TIMEOUT_PROXIMO_CPF = 15
+
+# Tempo de espera para cliques (usado nos métodos de assinatura)
+TEMPO_ESPERA_CLIQUE = 0.5
+
+# Intervalo aleatório para digitação (min, max em segundos)
+INTERVALO_DIGITACAO_MIN = 0.02
+INTERVALO_DIGITACAO_MAX = 0.05
+
+# Intervalo aleatório para espera geral (min, max em segundos)
+INTERVALO_ESPERA_MIN = 0.3
+INTERVALO_ESPERA_MAX = 1.0
+
+# ============================================================
+# CONFIGURAÇÕES DO CHROME
+# ============================================================
+
+# Diretório do perfil Chrome para automação
+CHROME_PROFILE_DIR = 'chrome_efd'
+
+# Argumentos do Chrome
+CHROME_ARGS = [
+    '--disable-blink-features=AutomationControlled',
+    '--disable-dev-shm-usage',
+    '--no-sandbox',
+    '--disable-extensions',
+    '--disable-plugins',
+    '--disable-images',
+    '--disable-javascript',
+    '--disable-plugins-discovery',
+    '--disable-background-networking',
+    '--disable-background-timer-throttling',
+    '--disable-backgrounding-occluded-windows',
+    '--disable-renderer-backgrounding'
+]
+
+# ============================================================
+# CONFIGURAÇÕES DO PYAUTOGUI
+# ============================================================
+
+# Ativar/desativar failsafe (mover mouse para canto cancela)
+PYAUTOGUI_FAILSAFE = True
+
+# Pausa entre ações do PyAutoGUI (segundos)
+PYAUTOGUI_PAUSE = 0.1
+
+# Configurações dos métodos de assinatura
+ASSINATURA_METODO_A_INTERVALO = 0.3  # Intervalo entre teclas (segundos)
+ASSINATURA_METODO_B_INTERVALO = 0.5  # Intervalo entre click e enter (segundos)
+
+# Método de assinatura padrão (1=Método A, 2=Método B)
+METODO_ASSINATURA_PADRAO = 2
+
+# Coordenadas do mouse para Método B (x, y) - None se não configurado
+COORDENADAS_MOUSE_METODO_B = None
+
+# ============================================================
+# CONFIGURAÇÕES DE VERIFICAÇÃO
+# ============================================================
+
+# Opção padrão para verificação manual de dados (True/False)
+VERIFICACAO_MANUAL_PADRAO = True
+
+# ============================================================
+# TEMPOS DE ESPERA ESPECÍFICOS (valores hardcoded removidos)
+# ============================================================
+
+# Tempo de espera ao detectar execução via script (segundos)
+TEMPO_ESPERA_SCRIPT = 1
+
+# Tempo de espera para processamento de páginas (segundos)
+TEMPO_PROCESSAMENTO_PAGINA = 0.5
+
+# Timeout para WebDriverWait em modais e elementos específicos (segundos)
+TIMEOUT_MODAL = 3
+
+# Tempo de espera antes de enviar declaração (segundos)
+TEMPO_ANTES_ENVIO = 1
+
+# Tempo de espera após scroll para visibilidade (segundos)
+TEMPO_APOS_SCROLL = 0.5
+
+# Tempo de espera após envio da declaração (segundos)
+TEMPO_APOS_ENVIO = 2
+
+# Tempo de espera antes de clicar próximo CPF (segundos)
+TEMPO_ANTES_PROXIMO_CPF = 2
+
+# Tempo de espera após clicar próximo CPF (segundos)
+TEMPO_APOS_PROXIMO_CPF = 3
+
+# Tempo de espera entre grupos (segundos)
+TEMPO_ENTRE_GRUPOS = 0.5
+
+# Tempo de espera quando confirmação não é detectada (segundos)
+TEMPO_CONFIRMACAO_NAO_DETECTADA = 5
+
+# Tempo de espera quando há erro na assinatura (segundos)
+TEMPO_ERRO_ASSINATURA = 10
+
+# Tempo de espera em modo automático antes do envio (segundos)
+TEMPO_MODO_AUTOMATICO = 1
+
+# Tempo de espera em execução via script durante verificação (segundos)
+TEMPO_SCRIPT_VERIFICACAO = 2
+
+# ============================================================
+# CONFIGURAÇÕES DE TESTE (para funções de demonstração)
+# ============================================================
+
+# Intervalos para testes de métodos de assinatura (segundos)
+TESTE_METODO_A_INTERVALO = 0.3
+TESTE_METODO_B_INTERVALO_CLICK = 0.5
+TESTE_METODO_B_INTERVALO_FINAL = 0.5
