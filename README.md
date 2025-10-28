@@ -17,7 +17,6 @@
 
 - Python 3.13+
 - Google Chrome
-- Certificado digital (e-CPF ou e-CNPJ)
 - Assinador Serpro (ou equivalente)
 
 ## ⚡ Instalação
@@ -58,13 +57,13 @@ Edite o `config.py`:
 
 ```python
 # Dados da empresa
-PERIODO_APURACAO = "03/2025"
+PERIODO_APURACAO = "00/0000"
 CNPJ_EMPRESA = "00.000.000/0000-00"
 CNPJ_OPERADORA_PADRAO = "00.000.000/0000-00"
 
 # Comportamento
 VERIFICACAO_MANUAL_PADRAO = False    # True = pausa para revisar
-METODO_ASSINATURA_PADRAO = 1         # 1=Teclado, 2=Mouse
+METODO_ASSINATURA_PADRAO = 1         # 1=Apenas teclado, 2=Mouse + teclado
 ```
 
 ## 📊 Gerenciar Progresso
@@ -86,7 +85,7 @@ python gerenciar_checkpoint.py
 
 ## 🔐 Métodos de Assinatura
 
-### Método A - Teclado (Recomendado)
+### Método A - Teclado
 ```
 Sequência: ↑ ↑ Enter
 ```
@@ -129,16 +128,9 @@ rpa-dirf/
 
 | Problema | Solução |
 |----------|---------|
-| Chrome não abre | Verificar se está instalado e executar como administrador |
 | Erro de assinatura | Verificar se Assinador Serpro está rodando |
 | CPF não encontrado | Verificar formato da planilha Excel |
 | Certificado não funciona | Fazer login manual no navegador normal primeiro |
-
-## 📈 Performance
-
-- **Processamento**: ~90 segundos por grupo
-- **Memória**: ~200MB RAM  
-- **Compatibilidade**: Windows 10/11, Linux, macOS
 
 ## 🔄 Dependências
 
