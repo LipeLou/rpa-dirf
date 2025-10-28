@@ -6,6 +6,7 @@
 [![Selenium](https://img.shields.io/badge/Selenium-4.15.2-green.svg)](https://selenium.dev)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+
 ## 🚀 Características
 
 - ✅ **100% Automático** - Assinatura eletrônica automatizada
@@ -13,11 +14,13 @@
 - ✅ **Gestão Inteligente** - Pula CPFs já processados
 - ✅ **Relatórios Detalhados** - Acompanhamento completo
 
+
 ## 📋 Pré-requisitos
 
 - Python 3.13+
 - Google Chrome
 - Assinador Serpro (ou equivalente)
+
 
 ## ⚡ Instalação
 
@@ -38,6 +41,7 @@ chmod +x ativar_venv.sh
 python automacao_efd.py
 ```
 
+
 ## 🎯 Como Usar
 
 1. **Configure** os dados da empresa no `config.py`
@@ -51,6 +55,7 @@ python automacao_efd.py
 📂 Lê Excel → 🌐 Abre Chrome → 🔐 Login Manual → 🤖 Processa Todos → 📊 Gera Relatórios
 ```
 
+
 ## ⚙️ Configuração
 
 Edite o `config.py`:
@@ -63,8 +68,33 @@ CNPJ_OPERADORA_PADRAO = "00.000.000/0000-00"
 
 # Comportamento
 VERIFICACAO_MANUAL_PADRAO = False    # True = pausa para revisar
-METODO_ASSINATURA_PADRAO = 1         # 1=Apenas teclado, 2=Mouse + teclado
+METODO_ASSINATURA_PADRAO = 2         # 1=Apenas teclado, 2=Mouse + teclado
 ```
+
+
+## 🔐 Métodos de Assinatura
+
+### Método A - Teclado
+```
+Sequência: ↑ ↑ Enter
+```
+
+### Método B - Mouse + Teclado
+```
+Sequência: Click(x,y) + Enter
+```
+> Requer configuração de coordenadas na primeira execução
+
+
+## 📋 Formato da Planilha
+
+**Arquivo:** `dados.xlsx` **| Aba:** `MÊS 2025`
+
+| NOME | CPF | DEPENDENCIA | VALOR |
+|------|-----|-------------|-------|
+| João Silva | 000.000.000-00 | TITULAR | 150,00 |
+| Maria Silva | 111.111.111-11 | ESPOSA | 150,00 |
+
 
 ## 📊 Gerenciar Progresso
 
@@ -83,18 +113,6 @@ python gerenciar_checkpoint.py
 - Exportar relatórios em Excel
 - Alterar checkpoint atual
 
-## 🔐 Métodos de Assinatura
-
-### Método A - Teclado
-```
-Sequência: ↑ ↑ Enter
-```
-
-### Método B - Mouse + Teclado
-```
-Sequência: Click(x,y) + Enter
-```
-> Requer configuração de coordenadas na primeira execução
 
 ## 📁 Estrutura do Projeto
 
@@ -109,20 +127,13 @@ rpa-dirf/
 └── gerenciar_db.bat       # Gerenciador Windows
 ```
 
-## 📋 Formato da Planilha
-
-**Arquivo:** `dados.xlsx` **| Aba:** `MAR 2025`
-
-| NOME | CPF | DEPENDENCIA | RELACAO | PLANO | VALOR |
-|------|-----|-------------|---------|-------|-------|
-| João Silva | 000.000.000-00 | TITULAR | - | Plano Saúde | 150,00 |
-| Maria Silva | 111.111.111-11 | ESPOSA | 1 | Plano Saúde | 150,00 |
 
 ## 🛡️ Segurança
 
 - **🔒 FAILSAFE**: Mover mouse para canto superior esquerdo cancela tudo
 - **👤 Login manual**: Certificado digital sempre requer interação manual
 - **💾 Dados locais**: Todas as informações permanecem no seu computador
+
 
 ## ❓ Problemas Comuns
 
@@ -131,6 +142,7 @@ rpa-dirf/
 | Erro de assinatura | Verificar se Assinador Serpro está rodando |
 | CPF não encontrado | Verificar formato da planilha Excel |
 | Certificado não funciona | Fazer login manual no navegador normal primeiro |
+
 
 ## 🔄 Dependências
 
@@ -143,12 +155,14 @@ PyAutoGUI==0.9.54
 Pillow>=10.0.0
 ```
 
+
 ## 📞 Suporte
 
 1. Verificar logs no terminal
 2. Consultar checkpoints no gerenciador
 3. Analisar relatórios gerados
 4. Resetar progresso se necessário
+
 
 ## 📄 Licença
 
