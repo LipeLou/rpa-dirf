@@ -1,6 +1,6 @@
 # 🤖 Automação EFD-REINF
 
-> Sistema completo para automatizar o preenchimento de formulários EFD-REINF da Receita Federal com assinatura eletrônica automática.
+> Sistema completo para automatizar o preenchimento de declarações de imposto de renda (plano de sáude) da Receita Federal com assinatura eletrônica automática.
 
 [![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)](https://python.org)
 [![Selenium](https://img.shields.io/badge/Selenium-4.15.2-green.svg)](https://selenium.dev)
