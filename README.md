@@ -76,7 +76,7 @@ METODO_ASSINATURA_PADRAO = 2         # 1=Apenas teclado, 2=Mouse + teclado
 
 ### Método A - Teclado
 ```
-Sequência: ↑ ↑ Enter
+Sequência: ↑ + ↑ + Enter
 ```
 
 ### Método B - Mouse + Teclado
