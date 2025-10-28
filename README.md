@@ -45,7 +45,7 @@ python automacao_efd.py
 ## 🎯 Como Usar
 
 1. **Configure** os dados da empresa no `config.py`
-2. **Prepare** a planilha `dados.xlsx` com os CPFs
+2. **Adicione** a planilha `dados.xlsx` com os CPFs
 3. **Execute** o sistema
 4. **Faça login** manual no site da Receita (apenas uma vez)
 5. **Aguarde** o processamento automático
@@ -162,11 +162,6 @@ Pillow>=10.0.0
 2. Consultar checkpoints no gerenciador
 3. Analisar relatórios gerados
 4. Resetar progresso se necessário
-
-
-## 📄 Licença
-
-Este projeto está licenciado sob a [Licença MIT](LICENSE).
 
 ---
 
