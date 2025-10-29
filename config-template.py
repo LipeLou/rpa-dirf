@@ -32,7 +32,7 @@ PERIODO_APURACAO = "00/0000"
 # CNPJ da empresa (formato 00.000.000/0000-00)
 CNPJ_EMPRESA = "00.000.000/0000-00"
 
-# CNPJ padrão da operadora de saúde
+# CNPJ padrão da operadora de saúde (formato 00.000.000/0000-00)
 CNPJ_OPERADORA_PADRAO = "00.000.000/0000-00"
 
 # ============================================================
@@ -106,7 +106,7 @@ ASSINATURA_METODO_B_INTERVALO = 0.5  # Intervalo entre click e enter (segundos)
 METODO_ASSINATURA_PADRAO = 2
 
 # Coordenadas do mouse para Método B (x, y) - None se não configurado
-COORDENADAS_MOUSE_METODO_B = (763, 445)
+COORDENADAS_MOUSE_METODO_B = None
 
 # ============================================================
 # CONFIGURAÇÕES DE VERIFICAÇÃO
