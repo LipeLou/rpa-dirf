@@ -53,5 +53,5 @@ dados.xlsx
 *.bak
 *.orig
 
-# Arquivo de configuração personalizada (descomente para ignorar alterações locais)
+# Arquivo de configuração personalizada
 config.py

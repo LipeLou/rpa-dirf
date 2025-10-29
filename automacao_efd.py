@@ -900,38 +900,38 @@ class AutomacaoEFD:
                 return False
             
             print("   ✅ Formulário detectado!")
-            self.delay_humano(0.5, 1.0)
+            self.delay_humano(0.1, 0.3)
             
             # CAMPO 1: Período de Apuração
             print("   📅 Preenchendo Período de Apuração...")
             campo_data = self.driver.find_element(By.ID, "periodo_apuracao")
             campo_data.clear()
-            self.delay_humano(0.2, 0.5)
+            self.delay_humano(0.1, 0.2)
             self.digitar_devagar(campo_data, PERIODO_APURACAO)
             print(f"   ✅ Data: {PERIODO_APURACAO}")
-            self.delay_humano(0.5, 1.0)
+            self.delay_humano(0.1, 0.3)
             
             # CAMPO 2: CNPJ
             print("   🏢 Preenchendo CNPJ...")
             campo_cnpj = self.driver.find_element(By.ID, "insc_estabelecimento")
             campo_cnpj.clear()
-            self.delay_humano(0.2, 0.5)
+            self.delay_humano(0.1, 0.2)
             self.digitar_devagar(campo_cnpj, CNPJ_EMPRESA)
             print(f"   ✅ CNPJ: {CNPJ_EMPRESA}")
-            self.delay_humano(0.5, 1.0)
+            self.delay_humano(0.1, 0.3)
             
             # CAMPO 3: CPF do Beneficiário
             print(f"   👤 Preenchendo CPF do Beneficiário...")
             campo_cpf = self.driver.find_element(By.ID, "cpf_beneficiario")
             campo_cpf.clear()
-            self.delay_humano(0.2, 0.5)
+            self.delay_humano(0.1, 0.2)
             self.digitar_devagar(campo_cpf, cpf_titular)
             print(f"   ✅ CPF: {cpf_titular}")
-            self.delay_humano(0.8, 1.5)
+            self.delay_humano(0.2, 0.4)
             
             # BOTÃO: Continuar será clicado na função continuar_para_proxima_etapa()
             print("   🔘 Botão 'Continuar' será clicado na próxima etapa...")
-            self.delay_humano(0.5, 1.0)
+            self.delay_humano(0.1, 0.3)
             
             print("\n✅ Dados iniciais preenchidos com sucesso!")
             return True
@@ -1895,7 +1895,7 @@ class AutomacaoEFD:
             # Scroll até o botão para garantir visibilidade
             print("📜 Fazendo scroll até o botão...")
             self.driver.execute_script("arguments[0].scrollIntoView(true);", botao_proximo)
-            time.sleep(TEMPO_APOS_SCROLL)
+            time.sleep(0.2)  # Reduzido de TEMPO_APOS_SCROLL (0.5s)
             
             # Clicar no botão
             print("🖱️ Clicando no botão 'Incluir novo pagamento'...")

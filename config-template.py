@@ -1,5 +1,5 @@
 """
-Arquivo BASE de Configuração - Automação EFD-REINF
+Arquivo de Configuração - Automação EFD-REINF
 ==============================================
 
 Este arquivo centraliza todas as configurações do sistema de automação.
@@ -27,20 +27,20 @@ BANCO_DADOS = ''
 # ============================================================
 
 # Período de apuração (formato MM/AAAA)
-PERIODO_APURACAO = ""
+PERIODO_APURACAO = "00/0000"
 
 # CNPJ da empresa (formato 00.000.000/0000-00)
-CNPJ_EMPRESA = ""
+CNPJ_EMPRESA = "00.000.000/0000-00"
 
-# CNPJ padrão da operadora de saúde (formato 00.000.000/0000-00)
-CNPJ_OPERADORA_PADRAO = ""
+# CNPJ padrão da operadora de saúde
+CNPJ_OPERADORA_PADRAO = "00.000.000/0000-00"
 
 # ============================================================
 # CONFIGURAÇÕES DE TEMPO E ESPERA
 # ============================================================
 
 # Tempo de espera para o aplicativo de assinatura (segundos)
-TEMPO_ESPERA_ASSINADOR = 10
+TEMPO_ESPERA_ASSINADOR = 5
 
 # Timeout padrão para WebDriverWait (segundos)
 TIMEOUT_WEBDRIVER = 10
@@ -55,12 +55,12 @@ TIMEOUT_PROXIMO_CPF = 15
 TEMPO_ESPERA_CLIQUE = 0.5
 
 # Intervalo aleatório para digitação (min, max em segundos)
-INTERVALO_DIGITACAO_MIN = 0.02
-INTERVALO_DIGITACAO_MAX = 0.05
+INTERVALO_DIGITACAO_MIN = 0.01
+INTERVALO_DIGITACAO_MAX = 0.03
 
 # Intervalo aleatório para espera geral (min, max em segundos)
-INTERVALO_ESPERA_MIN = 0.3
-INTERVALO_ESPERA_MAX = 1.0
+INTERVALO_ESPERA_MIN = 0.2
+INTERVALO_ESPERA_MAX = 0.6
 
 # ============================================================
 # CONFIGURAÇÕES DO CHROME
@@ -106,7 +106,7 @@ ASSINATURA_METODO_B_INTERVALO = 0.5  # Intervalo entre click e enter (segundos)
 METODO_ASSINATURA_PADRAO = 2
 
 # Coordenadas do mouse para Método B (x, y) - None se não configurado
-COORDENADAS_MOUSE_METODO_B = None
+COORDENADAS_MOUSE_METODO_B = (763, 445)
 
 # ============================================================
 # CONFIGURAÇÕES DE VERIFICAÇÃO
@@ -123,7 +123,7 @@ VERIFICACAO_MANUAL_PADRAO = True
 TEMPO_ESPERA_SCRIPT = 1
 
 # Tempo de espera para processamento de páginas (segundos)
-TEMPO_PROCESSAMENTO_PAGINA = 0.5
+TEMPO_PROCESSAMENTO_PAGINA = 0.2
 
 # Timeout para WebDriverWait em modais e elementos específicos (segundos)
 TIMEOUT_MODAL = 3
@@ -132,16 +132,16 @@ TIMEOUT_MODAL = 3
 TEMPO_ANTES_ENVIO = 1
 
 # Tempo de espera após scroll para visibilidade (segundos)
-TEMPO_APOS_SCROLL = 0.5
+TEMPO_APOS_SCROLL = 0.2
 
 # Tempo de espera após envio da declaração (segundos)
 TEMPO_APOS_ENVIO = 2
 
 # Tempo de espera antes de clicar próximo CPF (segundos)
-TEMPO_ANTES_PROXIMO_CPF = 2
+TEMPO_ANTES_PROXIMO_CPF = 0.5
 
 # Tempo de espera após clicar próximo CPF (segundos)
-TEMPO_APOS_PROXIMO_CPF = 3
+TEMPO_APOS_PROXIMO_CPF = 1
 
 # Tempo de espera entre grupos (segundos)
 TEMPO_ENTRE_GRUPOS = 0.5
