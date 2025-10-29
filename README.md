@@ -1,6 +1,6 @@
 # 🤖 Automação EFD-REINF
 
-> Sistema completo para automatizar o preenchimento de declarações de imposto de renda (plano de sáude) da Receita Federal com assinatura eletrônica automática.
+> Sistema completo para automatizar o preenchimento de declarações de imposto de renda (plano de saúde) da Receita Federal com assinatura eletrônica automática.
 
 [![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)](https://python.org)
 [![Selenium](https://img.shields.io/badge/Selenium-4.15.2-green.svg)](https://selenium.dev)
@@ -11,7 +11,9 @@
 
 - ✅ **100% Automático** - Assinatura eletrônica automatizada
 - ✅ **Sistema de Checkpoints** - Retoma de onde parou
-- ✅ **Gestão Inteligente** - Pula CPFs já processados
+- ✅ **Gestão Inteligente** - Pula CPFs já processados e grupos sem valor
+- ✅ **Validação Automática** - Ignora titulares/dependentes sem plano ativo
+- ✅ **Tratamento de Erros** - Registra erros no checkpoint para análise
 - ✅ **Relatórios Detalhados** - Acompanhamento completo
 
 
@@ -69,6 +71,7 @@ CNPJ_OPERADORA_PADRAO = "00.000.000/0000-00"
 # Comportamento
 VERIFICACAO_MANUAL_PADRAO = False    # True = pausa para revisar
 METODO_ASSINATURA_PADRAO = 2         # 1=Apenas teclado, 2=Mouse + teclado
+CHROME_VERSION = 141                  # Versão do Chrome instalada
 ```
 
 
@@ -83,12 +86,12 @@ Sequência: ↑ + ↑ + Enter
 ```
 Sequência: Click(x,y) + Enter
 ```
-> Requer configuração de coordenadas na primeira execução
+> Requer configuração de coordenadas após login no ECAC
 
 
 ## 📋 Formato da Planilha
 
-**Arquivo:** `dados.xlsx` **| Aba:** `MÊS 2025`
+**Arquivo:** `dados.xlsx` **| Aba:** `MÊS 2025` (configurável em `config.py`)
 
 | NOME | CPF | DEPENDENCIA | VALOR |
 |------|-----|-------------|-------|
@@ -112,6 +115,7 @@ python gerenciar_checkpoint.py
 - Limpar dados e resetar progresso
 - Exportar relatórios em Excel
 - Alterar checkpoint atual
+- Visualizar grupos com erro ou pulados
 
 
 ## 📁 Estrutura do Projeto
@@ -142,12 +146,14 @@ rpa-dirf/
 | Erro de assinatura | Verificar se Assinador Serpro está rodando |
 | CPF não encontrado | Verificar formato da planilha Excel |
 | Certificado não funciona | Fazer login manual no navegador normal primeiro |
+| Erro de versão ChromeDriver | Atualizar `CHROME_VERSION` no `config.py` com sua versão do Chrome |
 
 
 ## 🔄 Dependências
 
 ```txt
 selenium==4.15.2
+selenium-stealth>=1.0.6
 pandas==2.3.3
 openpyxl==3.1.5
 undetected-chromedriver==3.5.5
