@@ -21,6 +21,7 @@ import sqlite3
 from datetime import datetime
 import pyautogui
 from PIL import Image
+import traceback
 
 # Importar configurações
 from config import *
@@ -141,7 +142,8 @@ class AutomacaoEFD:
         options.add_argument('--start-maximized')
         
         print("🚀 Abrindo Chrome...")
-        self.driver = uc.Chrome(options=options, use_subprocess=True)
+        # Especificar versão do Chrome para compatibilidade do ChromeDriver
+        self.driver = uc.Chrome(options=options, use_subprocess=True, version_main=CHROME_VERSION)
         
         # Aplicar proteção anti-detecção
         stealth(self.driver,
@@ -262,6 +264,37 @@ class AutomacaoEFD:
             return f"{valor_arredondado:.2f}".replace('.', ',')
         except (ValueError, TypeError):
             return '0,00'
+    
+    def valor_eh_zero_ou_nulo(self, valor):
+        """
+        Verifica se um valor é zero ou nulo (sem valor).
+        
+        Args:
+            valor: Valor a ser verificado (pode ser str, float, int, None, etc.)
+        
+        Returns:
+            bool: True se o valor for zero ou nulo, False caso contrário
+        """
+        # Se for None ou string vazia
+        if valor is None or (isinstance(valor, str) and valor.strip() == ''):
+            return True
+        
+        # Tentar converter para float e verificar se é zero
+        try:
+            if isinstance(valor, str):
+                # Remover caracteres não numéricos exceto vírgula e ponto
+                valor_limpo = ''.join(c for c in valor if c.isdigit() or c in [',', '.'])
+                # Substituir vírgula por ponto para conversão
+                valor_limpo = valor_limpo.replace(',', '.')
+                valor_float = float(valor_limpo)
+            else:
+                valor_float = float(valor)
+            
+            # Verificar se é zero (com tolerância para pequenas diferenças de ponto flutuante)
+            return abs(valor_float) < 0.01
+        except (ValueError, TypeError):
+            # Se não conseguir converter, considerar como nulo
+            return True
 
     def salvar_coordenadas_config(self, coordenadas):
         """Salva as coordenadas no arquivo config.py"""
@@ -2077,21 +2110,54 @@ class AutomacaoEFD:
                     continue
                 
                 # Tentar processar este grupo
-                resultado = self.processar_grupo_individual(titular, dependentes)
-                
-                if resultado == "sucesso":
-                    sucessos += 1
-                    print(f"✅ Grupo {i+1} processado com sucesso!")
-                    # Salvar checkpoint após sucesso
-                    self.salvar_checkpoint_indice(i)
-                elif resultado == "pulado":
-                    pulados += 1
-                    print(f"⏭️ Grupo {i+1} pulado (CPF já lançado)")
-                    # Salvar checkpoint mesmo quando pulado
-                    self.salvar_checkpoint_indice(i)
-                else:
+                try:
+                    resultado = self.processar_grupo_individual(titular, dependentes)
+                    
+                    if resultado == "sucesso":
+                        sucessos += 1
+                        print(f"✅ Grupo {i+1} processado com sucesso!")
+                        # Salvar checkpoint após sucesso
+                        self.salvar_checkpoint_indice(i)
+                    elif resultado == "pulado":
+                        pulados += 1
+                        print(f"⏭️ Grupo {i+1} pulado (CPF já lançado)")
+                        # Salvar checkpoint mesmo quando pulado
+                        self.salvar_checkpoint_indice(i)
+                    else:
+                        erros += 1
+                        print(f"❌ Grupo {i+1} falhou")
+                        
+                        # Salvar checkpoint com status "erro" na tabela progresso_efd
+                        cpf_titular = titular['CPF']
+                        nome_titular = titular['NOME']
+                        self.salvar_checkpoint(
+                            cpf_titular,
+                            nome_titular,
+                            "grupo_erro",
+                            "erro",
+                            observacoes=f"Grupo falhou durante processamento"
+                        )
+                        
+                        # Salvar checkpoint do grupo atual para reprocessar
+                        self.salvar_checkpoint_indice(i)
+                        
+                except Exception as e:
+                    # Capturar erros não tratados (ex: erros do Chrome/Selenium)
                     erros += 1
-                    print(f"❌ Grupo {i+1} falhou")
+                    print(f"❌ Erro não tratado ao processar grupo {i+1}: {e}")
+                    traceback.print_exc()
+                    
+                    # Salvar checkpoint com status "erro"
+                    cpf_titular = titular['CPF']
+                    nome_titular = titular['NOME']
+                    self.salvar_checkpoint(
+                        cpf_titular,
+                        nome_titular,
+                        "grupo_erro",
+                        "erro",
+                        observacoes=f"Erro não tratado durante processamento: {str(e)}"
+                    )
+                    
                     # Salvar checkpoint do grupo atual para reprocessar
                     self.salvar_checkpoint_indice(i)
                 
@@ -2144,6 +2210,29 @@ class AutomacaoEFD:
         try:
             cpf_titular = titular['CPF']
             nome_titular = titular['NOME']
+            
+            # Verificar se o valor do titular é zero ou nulo - se for, pular o grupo inteiro
+            valor_titular_raw = titular.get('VALOR_PLANO') or titular.get('TOTAL')
+            
+            # Se não houver valor, considerar como nulo (pular grupo)
+            if valor_titular_raw is None or self.valor_eh_zero_ou_nulo(valor_titular_raw):
+                print(f"\n{'='*60}")
+                print(f"⏭️ GRUPO PULADO - VALOR DO TITULAR É ZERO OU NULO")
+                print(f"{'='*60}")
+                print(f"👤 Titular: {nome_titular} - CPF: {cpf_titular}")
+                print(f"💰 Valor do plano: {valor_titular_raw if valor_titular_raw is not None else 'N/A'}")
+                print(f"ℹ️ Grupo inteiro será pulado (titular não assina mais o plano ou valor não informado)")
+                
+                # Salvar checkpoint com status "pulado"
+                self.salvar_checkpoint(
+                    cpf_titular,
+                    nome_titular,
+                    "grupo_pulado",
+                    "pulado",
+                    observacoes=f"Grupo pulado - valor do titular é zero ou nulo (não assina mais o plano)"
+                )
+                
+                return "pulado"
             
             # Se há dados parciais (grupo incompleto), limpar tudo
             print(f"🔍 Verificando dados parciais para {cpf_titular}...")
@@ -2314,6 +2403,17 @@ class AutomacaoEFD:
             
         except Exception as e:
             print(f"❌ Erro ao processar grupo individual: {e}")
+            traceback.print_exc()
+            
+            # Salvar checkpoint com status "erro"
+            self.salvar_checkpoint(
+                cpf_titular,
+                nome_titular,
+                "erro_processamento",
+                "erro",
+                observacoes=f"Erro durante processamento: {str(e)}"
+            )
+            
             self.limpar_dados_parciais_grupo(cpf_titular)
             return "erro"
     
@@ -2326,8 +2426,18 @@ class AutomacaoEFD:
             
             print(f"\n👥 Processando {len(dependentes)} dependentes...")
             
+            dependentes_pulados = 0
+            
             for dependente in dependentes:
                 cpf_dep = dependente['CPF']
+                
+                # Verificar se o valor do dependente é nulo ANTES de adicionar à lista
+                valor_dependente_raw = dependente.get('VALOR_DEPENDENTE') or dependente.get('TOTAL')
+                if valor_dependente_raw is None or self.valor_eh_zero_ou_nulo(valor_dependente_raw):
+                    print(f"   ⏭️ Dependente {cpf_dep} tem valor zero ou nulo - não será adicionado (não assina mais o plano)")
+                    dependentes_pulados += 1
+                    continue
+                
                 dependencia_original = dependente.get('DEPENDENCIA', '').strip()
                 
                 # Mapear dependência para valor do formulário
@@ -2354,6 +2464,9 @@ class AutomacaoEFD:
                     print(f"   ✅ Dependente {cpf_dep} adicionado com sucesso")
                 else:
                     print(f"   ❌ Falha ao adicionar dependente {cpf_dep}")
+            
+            if dependentes_pulados > 0:
+                print(f"\n   ℹ️ Total de dependentes não adicionados (valor zero/nulo): {dependentes_pulados}")
         
         except Exception as e:
             print(f"❌ Erro ao processar dependentes: {e}")
@@ -2394,9 +2507,18 @@ class AutomacaoEFD:
             
             print(f"\n💰 Processando informações de {len(dependentes)} dependentes...")
             
+            dependentes_pulados = 0
+            
             for dependente in dependentes:
                 cpf_dep = dependente['CPF']
                 valor_dependente_raw = dependente.get('VALOR_DEPENDENTE', dependente.get('TOTAL', "50.00"))
+                
+                # Verificar se o valor é zero ou nulo ANTES de processar
+                if self.valor_eh_zero_ou_nulo(valor_dependente_raw):
+                    print(f"   ⏭️ Dependente {cpf_dep} tem valor zero ou nulo - pulando (não assina mais o plano)")
+                    dependentes_pulados += 1
+                    continue
+                
                 valor_dependente = self.formatar_valor(valor_dependente_raw)  # Formatar com 2 casas decimais
                 
                 print(f"   💰 Adicionando informação do dependente: {cpf_dep}")
@@ -2412,6 +2534,9 @@ class AutomacaoEFD:
                     print(f"   ✅ Informação do dependente {cpf_dep} adicionada com sucesso")
                 else:
                     print(f"   ❌ Falha ao adicionar informação do dependente {cpf_dep}")
+            
+            if dependentes_pulados > 0:
+                print(f"\n   ℹ️ Total de dependentes pulados (valor zero/nulo): {dependentes_pulados}")
         
         except Exception as e:
             print(f"❌ Erro ao processar informações dos dependentes: {e}")
@@ -2507,13 +2632,31 @@ class AutomacaoEFD:
             print("✅ Modo AUTOMÁTICO: Sem verificação manual")
             print("⚠️ O sistema enviará as declarações automaticamente!")
         
-        # Configurar método de assinatura usando config.py
+        # Configurar método de assinatura básico usando config.py
         if METODO_ASSINATURA_PADRAO == 2:
             self.metodo_assinatura = 2
             print("✅ Método B selecionado (sequência alternativa)")
+        else:
+            self.metodo_assinatura = 1
+            print("✅ Método A selecionado (sequência padrão)")
+        
+        print("\n💡 Para alterar essas configurações, edite o arquivo config.py")
+        print("="*60)
+        
+        # Abrir site
+        self.abrir_site()
+        
+        # Aguardar login e navegação manual
+        self.aguardar_login()
+        
+        # Configurar coordenadas para Método B DEPOIS de acessar o ECAC
+        if METODO_ASSINATURA_PADRAO == 2:
+            print("\n" + "="*60)
+            print("📍 CONFIGURAÇÃO DE COORDENADAS - MÉTODO B")
+            print("="*60)
+            print("Agora que o ECAC está aberto, configure as coordenadas do mouse")
+            print("para o Método B de assinatura eletrônica.")
             
-            # Configurar coordenadas para Método B com loop até conseguir
-            print("\n📍 Método B requer configuração de coordenadas do mouse")
             coordenadas_configuradas = False
             
             while not coordenadas_configuradas:
@@ -2548,18 +2691,6 @@ class AutomacaoEFD:
                     print("\n🔄 Mudando para Método A devido à interrupção...")
                     self.metodo_assinatura = 1
                     coordenadas_configuradas = True
-        else:
-            self.metodo_assinatura = 1
-            print("✅ Método A selecionado (sequência padrão)")
-        
-        print("\n💡 Para alterar essas configurações, edite o arquivo config.py")
-        print("="*60)
-        
-        # Abrir site
-        self.abrir_site()
-        
-        # Aguardar login e navegação manual
-        self.aguardar_login()
         
         # Processar todos os grupos
         self.processar_todos_os_grupos()
