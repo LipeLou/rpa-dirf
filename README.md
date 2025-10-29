@@ -1,6 +1,6 @@
 # 🤖 Automação EFD-REINF
 
-> Sistema completo para automatizar o preenchimento de formulários EFD-REINF da Receita Federal com assinatura eletrônica automática.
+> Sistema completo para automatizar o preenchimento de declarações de imposto de renda (plano de sáude) da Receita Federal com assinatura eletrônica automática.
 
 [![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)](https://python.org)
 [![Selenium](https://img.shields.io/badge/Selenium-4.15.2-green.svg)](https://selenium.dev)
@@ -45,7 +45,7 @@ python automacao_efd.py
 ## 🎯 Como Usar
 
 1. **Configure** os dados da empresa no `config.py`
-2. **Prepare** a planilha `dados.xlsx` com os CPFs
+2. **Adicione** a planilha `dados.xlsx` com os CPFs
 3. **Execute** o sistema
 4. **Faça login** manual no site da Receita (apenas uma vez)
 5. **Aguarde** o processamento automático
@@ -76,7 +76,7 @@ METODO_ASSINATURA_PADRAO = 2         # 1=Apenas teclado, 2=Mouse + teclado
 
 ### Método A - Teclado
 ```
-Sequência: ↑ ↑ Enter
+Sequência: ↑ + ↑ + Enter
 ```
 
 ### Método B - Mouse + Teclado
@@ -162,11 +162,6 @@ Pillow>=10.0.0
 2. Consultar checkpoints no gerenciador
 3. Analisar relatórios gerados
 4. Resetar progresso se necessário
-
-
-## 📄 Licença
-
-Este projeto está licenciado sob a [Licença MIT](LICENSE).
 
 ---
 
