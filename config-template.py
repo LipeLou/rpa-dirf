@@ -40,7 +40,7 @@ CNPJ_OPERADORA_PADRAO = "00.000.000/0000-00"
 # ============================================================
 
 # Tempo de espera para o aplicativo de assinatura (segundos)
-TEMPO_ESPERA_ASSINADOR = 8
+TEMPO_ESPERA_ASSINADOR = 10
 
 # Timeout padrão para WebDriverWait (segundos)
 TIMEOUT_WEBDRIVER = 10
