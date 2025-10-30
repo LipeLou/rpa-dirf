@@ -300,6 +300,72 @@ class GerenciadorCheckpoint:
         except Exception as e:
             print(f"❌ Erro ao ver estatísticas: {e}")
     
+    def verificar_tabela_existe(self, cursor, tabela):
+        """Verifica se uma tabela existe no banco"""
+        cursor.execute("""
+            SELECT name FROM sqlite_master 
+            WHERE type='table' AND name=?
+        """, (tabela,))
+        return cursor.fetchone() is not None
+    
+    def criar_tabelas_se_nao_existirem(self, cursor):
+        """Cria todas as tabelas necessárias se não existirem"""
+        tabelas = [
+            ('progresso_efd', '''
+                CREATE TABLE IF NOT EXISTS progresso_efd (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    cpf_titular TEXT NOT NULL,
+                    nome_titular TEXT,
+                    etapa_atual TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    dados_json TEXT,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    observacoes TEXT
+                )
+            '''),
+            ('dependentes_processados', '''
+                CREATE TABLE IF NOT EXISTS dependentes_processados (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    cpf_titular TEXT NOT NULL,
+                    cpf_dependente TEXT NOT NULL,
+                    relacao TEXT,
+                    descricao_agregado TEXT,
+                    status TEXT NOT NULL,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            '''),
+            ('planos_processados', '''
+                CREATE TABLE IF NOT EXISTS planos_processados (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    cpf_titular TEXT NOT NULL,
+                    cnpj_operadora TEXT NOT NULL,
+                    valor_titular TEXT,
+                    status TEXT NOT NULL,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            '''),
+            ('info_dependentes_processados', '''
+                CREATE TABLE IF NOT EXISTS info_dependentes_processados (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    cpf_titular TEXT NOT NULL,
+                    cpf_dependente TEXT NOT NULL,
+                    valor_dependente TEXT,
+                    status TEXT NOT NULL,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            '''),
+            ('checkpoint_indice', '''
+                CREATE TABLE IF NOT EXISTS checkpoint_indice (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ultimo_indice INTEGER NOT NULL,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+        ]
+        
+        for nome_tabela, create_sql in tabelas:
+            cursor.execute(create_sql)
+    
     def limpar_dados(self):
         """Limpa dados do banco"""
         try:
@@ -318,13 +384,20 @@ class GerenciadorCheckpoint:
                     conn = self.conectar_banco()
                     if conn:
                         cursor = conn.cursor()
+                        
+                        # Criar tabelas se não existirem
+                        self.criar_tabelas_se_nao_existirem(cursor)
+                        
+                        # Agora limpar os dados
                         cursor.execute('DELETE FROM progresso_efd')
                         cursor.execute('DELETE FROM dependentes_processados')
                         cursor.execute('DELETE FROM planos_processados')
                         cursor.execute('DELETE FROM info_dependentes_processados')
+                        cursor.execute('DELETE FROM checkpoint_indice')
                         conn.commit()
                         conn.close()
                         print("✅ Todos os dados foram limpos!")
+                        print("💡 Checkpoint de índice também foi resetado - processamento começará do início")
                     else:
                         print("❌ Erro ao conectar banco")
                 else:
@@ -336,6 +409,10 @@ class GerenciadorCheckpoint:
                     conn = self.conectar_banco()
                     if conn:
                         cursor = conn.cursor()
+                        
+                        # Criar tabelas se não existirem
+                        self.criar_tabelas_se_nao_existirem(cursor)
+                        
                         cursor.execute('DELETE FROM progresso_efd WHERE cpf_titular = ?', (cpf,))
                         cursor.execute('DELETE FROM dependentes_processados WHERE cpf_titular = ?', (cpf,))
                         cursor.execute('DELETE FROM planos_processados WHERE cpf_titular = ?', (cpf,))
@@ -353,6 +430,10 @@ class GerenciadorCheckpoint:
                     conn = self.conectar_banco()
                     if conn:
                         cursor = conn.cursor()
+                        
+                        # Criar tabelas se não existirem
+                        self.criar_tabelas_se_nao_existirem(cursor)
+                        
                         cursor.execute('''
                             DELETE FROM progresso_efd 
                             WHERE timestamp < datetime('now', '-{} days')
@@ -487,7 +568,7 @@ class GerenciadorCheckpoint:
         try:
             print(f"\n⚙️ ALTERAR CHECKPOINT ATUAL")
             print(f"{'='*50}")
-            print("1. 📊 Alterar por índice de grupo")
+            print("1. 📊 Alterar por número de grupo")
             print("2. 👤 Alterar por CPF específico")
             print("3. 📋 Ver checkpoint atual")
             print("4. 📄 Listar grupos disponíveis")
@@ -523,18 +604,19 @@ class GerenciadorCheckpoint:
             print(f"\n📋 CHECKPOINT ATUAL")
             print(f"{'='*40}")
             
-            # Ver checkpoint de índice
+            # Ver checkpoint de grupo
             try:
                 cursor.execute('SELECT ultimo_indice, timestamp FROM checkpoint_indice ORDER BY timestamp DESC LIMIT 1')
                 checkpoint = cursor.fetchone()
                 if checkpoint:
                     indice, timestamp = checkpoint
-                    print(f"📊 Checkpoint por índice: Grupo {indice + 1} (índice {indice})")
+                    numero_grupo = indice + 1
+                    print(f"📊 Checkpoint: Grupo {numero_grupo}")
                     print(f"   Atualizado em: {timestamp}")
                 else:
-                    print("📊 Checkpoint por índice: Não definido (começará do grupo 1)")
+                    print("📊 Checkpoint: Não definido (começará do grupo 1)")
             except:
-                print("📊 Checkpoint por índice: Tabela não existe")
+                print("📊 Checkpoint: Tabela não existe")
             
             # Ver último CPF processado
             try:
@@ -628,25 +710,28 @@ class GerenciadorCheckpoint:
             print(f"❌ Erro ao listar grupos: {e}")
     
     def alterar_checkpoint_por_indice(self):
-        """Altera o checkpoint por índice de grupo"""
+        """Altera o checkpoint por número de grupo"""
         try:
             # Primeiro mostrar grupos disponíveis
             self.listar_grupos_disponiveis()
             
-            print(f"\n⚙️ ALTERAR CHECKPOINT POR ÍNDICE")
+            print(f"\n⚙️ ALTERAR CHECKPOINT POR NÚMERO DE GRUPO")
             print(f"{'='*40}")
             
             try:
-                novo_indice = int(input("Digite o ÍNDICE do grupo para continuar (ex: 5 para grupo 6): ").strip())
+                numero_grupo = int(input("Digite o NÚMERO do grupo para continuar: ").strip())
             except ValueError:
-                print("❌ Índice inválido")
+                print("❌ Número inválido")
                 return
             
-            if novo_indice < 0:
-                print("❌ Índice deve ser maior ou igual a 0")
+            if numero_grupo < 1:
+                print("❌ Número do grupo deve ser maior ou igual a 1")
                 return
             
-            confirmar = input(f"⚠️ Definir checkpoint para índice {novo_indice} (grupo {novo_indice + 1})? (digite 'SIM'): ")
+            # Converter número do grupo para índice (número - 1)
+            novo_indice = numero_grupo - 1
+            
+            confirmar = input(f"⚠️ Definir checkpoint para o grupo {numero_grupo}? (digite 'SIM'): ")
             if confirmar != "SIM":
                 print("❌ Operação cancelada")
                 return
@@ -666,18 +751,20 @@ class GerenciadorCheckpoint:
                 )
             ''')
             
-            # Atualizar checkpoint
+            # Atualizar checkpoint (salvar o índice do grupo ANTERIOR para que o sistema processe este grupo)
+            # Se queremos começar do grupo N, salvamos o índice N-1
+            indice_checkpoint = max(0, novo_indice - 1)
             cursor.execute('DELETE FROM checkpoint_indice')
-            cursor.execute('INSERT INTO checkpoint_indice (ultimo_indice) VALUES (?)', (novo_indice,))
+            cursor.execute('INSERT INTO checkpoint_indice (ultimo_indice) VALUES (?)', (indice_checkpoint,))
             
             conn.commit()
             conn.close()
             
-            print(f"✅ Checkpoint alterado para índice {novo_indice} (grupo {novo_indice + 1})!")
+            print(f"✅ Checkpoint alterado para o grupo {numero_grupo}!")
             print("💡 O processamento continuará a partir deste grupo")
             
         except Exception as e:
-            print(f"❌ Erro ao alterar checkpoint por índice: {e}")
+            print(f"❌ Erro ao alterar checkpoint: {e}")
     
     def alterar_checkpoint_por_cpf(self):
         """Altera o checkpoint para um CPF específico"""
