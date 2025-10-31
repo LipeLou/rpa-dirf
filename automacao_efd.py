@@ -2326,61 +2326,68 @@ class AutomacaoEFD:
                 if assinatura_sucesso:
                     # Aguardar automaticamente pelo alerta de sucesso
                     if self.aguardar_alerta_sucesso_assinatura():
-                        print("✅ Processo concluído!")
+                        print("✅ Processo concluído com confirmação de sucesso!")
                         
-                        # GRUPO COMPLETO! Salvar checkpoint final imediatamente após assinatura
+                        # GRUPO COMPLETO COM SUCESSO! Salvar checkpoint final
                         self.salvar_checkpoint(
                             cpf_titular,
                             nome_titular,
                             "grupo_completo",
                             "sucesso",
-                            observacoes="Grupo processado completamente - assinatura concluída com sucesso"
+                            observacoes="Grupo processado completamente - confirmação de sucesso detectada"
                         )
+                        
+                        # Próximo passo: clicar no botão próximo CPF
+                        print(f"\n{'='*60}")
+                        print("➡️ PRÓXIMO CPF")
+                        print(f"{'='*60}")
+                        
+                        if self.clicar_proximo_cpf():
+                            print("✅ Botão próximo CPF clicado com sucesso!")
+                            return "sucesso"
+                        else:
+                            print("❌ Erro ao clicar no botão próximo CPF")
+                            
+                            # Salvar checkpoint com erro no próximo CPF
+                            self.salvar_checkpoint(
+                                cpf_titular,
+                                nome_titular,
+                                "erro_proximo_cpf",
+                                "erro",
+                                observacoes="Erro ao clicar no botão próximo CPF - verificar manualmente"
+                            )
+                            
+                            self.limpar_dados_parciais_grupo(cpf_titular)
+                            return "erro"
                         
                     else:
-                        print("⚠️ Confirmação não detectada - continuando...")
+                        print("❌ Confirmação de sucesso NÃO detectada!")
+                        print("⚠️ Grupo NÃO será marcado como sucesso")
                         time.sleep(TEMPO_CONFIRMACAO_NAO_DETECTADA)
                         
-                        # Mesmo sem confirmação detectada, consideramos grupo completo se chegou até aqui
+                        # Marcar como ERRO porque não houve confirmação
                         self.salvar_checkpoint(
                             cpf_titular,
                             nome_titular,
-                            "grupo_completo",
-                            "sucesso",
-                            observacoes="Grupo processado completamente - confirmação não detectada mas assinatura executada"
+                            "erro_sem_confirmacao",
+                            "erro",
+                            observacoes="Confirmação de sucesso não detectada após assinatura - necessário verificação manual"
                         )
+                        
+                        self.limpar_dados_parciais_grupo(cpf_titular)
+                        return "erro"
                         
                 else:
                     print("❌ Erro na assinatura")
                     time.sleep(TEMPO_ERRO_ASSINATURA)
-                
-                # Salvar checkpoint com assinatura completa (para histórico)
-                self.salvar_checkpoint(
-                    cpf_titular,
-                    nome_titular,
-                    "assinatura_completa",
-                    "sucesso",
-                    observacoes="Declaração enviada e assinatura eletrônica executada"
-                )
-                
-                # Próximo passo: clicar no botão próximo CPF
-                print(f"\n{'='*60}")
-                print("➡️ PRÓXIMO CPF")
-                print(f"{'='*60}")
-                
-                if self.clicar_proximo_cpf():
-                    print("✅ Botão próximo CPF clicado com sucesso!")
-                    return "sucesso"
-                else:
-                    print("❌ Erro ao clicar no botão próximo CPF")
                     
-                    # Salvar checkpoint com erro no próximo CPF
+                    # Marcar como erro na assinatura
                     self.salvar_checkpoint(
                         cpf_titular,
                         nome_titular,
-                        "erro_proximo_cpf",
+                        "erro_assinatura",
                         "erro",
-                        observacoes="Erro ao clicar no botão próximo CPF - verificar manualmente"
+                        observacoes="Erro ao executar assinatura eletrônica - verificar manualmente"
                     )
                     
                     self.limpar_dados_parciais_grupo(cpf_titular)
