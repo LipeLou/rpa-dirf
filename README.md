@@ -158,7 +158,6 @@ pandas==2.3.3
 openpyxl==3.1.5
 undetected-chromedriver==3.5.5
 PyAutoGUI==0.9.54
-Pillow>=10.0.0
 ```
 
 

@@ -20,7 +20,6 @@ import platform
 import sqlite3
 from datetime import datetime
 import pyautogui
-from PIL import Image
 import traceback
 
 # Importar configurações
