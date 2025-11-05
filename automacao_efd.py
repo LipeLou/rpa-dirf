@@ -944,6 +944,9 @@ class AutomacaoEFD:
         try:
             print("\n🔍 Verificando erros na primeira etapa...")
             
+            # Aguardar um pouco para a página estabilizar
+            time.sleep(0.5)
+            
             # Procurar por spans de erro/aviso
             spans_erro = self.driver.find_elements(By.XPATH, "//span[contains(@class, 'erro') or contains(@class, 'error') or contains(@class, 'aviso') or contains(@class, 'warning') or contains(@class, 'alert')]")
             
@@ -970,39 +973,69 @@ class AutomacaoEFD:
             
             erros_encontrados = []
             
-            # Verificar spans
+            # Verificar spans (coletando texto imediatamente para evitar stale elements)
             for span in spans_erro:
-                texto = span.text.strip()
-                if texto and any(palavra in texto.lower() for palavra in textos_erro):
-                    erros_encontrados.append(f"SPAN: {texto}")
+                try:
+                    # Coletar texto imediatamente para evitar stale element
+                    texto = span.text.strip() if span.is_displayed() else ""
+                    if texto and any(palavra in texto.lower() for palavra in textos_erro):
+                        erros_encontrados.append(f"SPAN: {texto}")
+                except Exception as e:
+                    # Se elemento ficar stale, ignorar e continuar
+                    continue
             
-            # Verificar divs
+            # Verificar divs (coletando texto imediatamente para evitar stale elements)
             for div in divs_erro:
-                texto = div.text.strip()
-                if texto and any(palavra in texto.lower() for palavra in textos_erro):
-                    erros_encontrados.append(f"DIV: {texto}")
+                try:
+                    # Coletar texto imediatamente para evitar stale element
+                    texto = div.text.strip() if div.is_displayed() else ""
+                    if texto and any(palavra in texto.lower() for palavra in textos_erro):
+                        erros_encontrados.append(f"DIV: {texto}")
+                except Exception as e:
+                    # Se elemento ficar stale, ignorar e continuar
+                    continue
             
-            # Verificar mensagens de alerta específicas
+            # Verificar mensagens de alerta específicas (coletando texto imediatamente)
             for mensagem in mensagens_alerta:
-                if mensagem.is_displayed():
+                try:
+                    if not mensagem.is_displayed():
+                        continue
+                    
                     # Procurar pela descrição da mensagem
                     try:
                         descricao = mensagem.find_element(By.CSS_SELECTOR, '[data-testid*="mensagem_descricao"]')
                         texto_descricao = descricao.text.strip()
                         if texto_descricao:
                             erros_encontrados.append(f"ALERTA: {texto_descricao}")
-                    except:
-                        # Se não encontrar a descrição, pegar o texto completo da mensagem
-                        texto_completo = mensagem.text.strip()
-                        if texto_completo and any(palavra in texto_completo.lower() for palavra in textos_erro):
-                            erros_encontrados.append(f"ALERTA: {texto_completo}")
+                            continue
+                    except Exception:
+                        pass
+                    
+                    # Se não encontrar a descrição, pegar o texto completo da mensagem
+                    texto_completo = mensagem.text.strip()
+                    if texto_completo and any(palavra in texto_completo.lower() for palavra in textos_erro):
+                        erros_encontrados.append(f"ALERTA: {texto_completo}")
+                except Exception as e:
+                    # Se elemento ficar stale, ignorar e continuar
+                    continue
             
-            # Procurar por elementos com texto de erro específico
+            # Procurar por elementos com texto de erro específico (busca direta para evitar stale elements)
             for texto_erro in textos_erro:
-                elementos = self.driver.find_elements(By.XPATH, f"//*[contains(text(), '{texto_erro}')]")
-                for elemento in elementos:
-                    if elemento.text.strip() and elemento.is_displayed():
-                        erros_encontrados.append(f"TEXTO: {elemento.text.strip()}")
+                try:
+                    # Re-encontrar elementos a cada iteração para evitar stale elements
+                    elementos = self.driver.find_elements(By.XPATH, f"//*[contains(text(), '{texto_erro}')]")
+                    for elemento in elementos:
+                        try:
+                            if elemento.is_displayed():
+                                texto = elemento.text.strip()
+                                if texto:
+                                    erros_encontrados.append(f"TEXTO: {texto}")
+                        except Exception:
+                            # Elemento stale, continuar com o próximo
+                            continue
+                except Exception:
+                    # Continuar com o próximo texto de erro
+                    continue
             
             if erros_encontrados:
                 # Tratar erro específico de CPF já lançado
@@ -2324,6 +2357,10 @@ class AutomacaoEFD:
                 assinatura_sucesso = self.realizar_assinatura_automatica(self.metodo_assinatura)
                 
                 if assinatura_sucesso:
+                    # Aguardar um pouco antes de verificar a confirmação
+                    print("⏳ Aguardando processamento da assinatura...")
+                    time.sleep(3)
+                    
                     # Aguardar automaticamente pelo alerta de sucesso
                     if self.aguardar_alerta_sucesso_assinatura():
                         print("✅ Processo concluído com confirmação de sucesso!")
