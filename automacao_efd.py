@@ -176,9 +176,6 @@ class AutomacaoEFD:
         print("   ✓ Campo 'CNPJ' (00.000.000/0000-00)")
         print("   ✓ Campo 'CPF do Beneficiário' (000.000.000-00)")
         print("\n⚠️ SÓ PRESSIONE ENTER QUANDO VER OS 3 CAMPOS!")
-        print("   → URL permanecerá a mesma (página dinâmica)")
-        print("   → Código aguardará até 15s o formulário carregar")
-        print("   → Depois preenche automaticamente!")
         print("="*60)
         try:
             input("\n✅ VÊ OS 3 CAMPOS NA TELA? Pressione ENTER para automação...\n")
@@ -841,23 +838,12 @@ class AutomacaoEFD:
         )
         
         try:
-            # DEBUG: Ver estado da página
-            print(f"\n🔍 DEBUG:")
-            print(f"   URL: {self.driver.current_url}")
-            print(f"   Título: {self.driver.title}")
-            
             # Verificar iframes
             iframes = self.driver.find_elements(By.TAG_NAME, "iframe")
-            print(f"   Iframes encontrados: {len(iframes)}")
             
             # Se tiver iframe, entrar nele
             if len(iframes) > 0:
-                print(f"   ⚠️ PÁGINA TEM IFRAME! Entrando no primeiro iframe...")
                 self.driver.switch_to.frame(0)
-                print(f"   ✅ Dentro do iframe")
-            
-            # Aguardar e procurar elemento
-            print("   ⏳ Aguardando formulário carregar (15s)...")
             
             # Tentar encontrar por múltiplos métodos
             elemento_encontrado = False
@@ -869,70 +855,45 @@ class AutomacaoEFD:
             
             for nome, metodo, seletor in tentativas:
                 try:
-                    print(f"   Tentando encontrar por {nome}: {seletor}")
                     WebDriverWait(self.driver, TIMEOUT_MODAL).until(
                         EC.presence_of_element_located((metodo, seletor))
                     )
-                    print(f"   ✅ Encontrado por {nome}!")
                     elemento_encontrado = True
                     break
                 except:
-                    print(f"   ❌ Não encontrado por {nome}")
                     continue
             
             if not elemento_encontrado:
-                # Mostrar o que TEM na página
-                print("\n   📋 ELEMENTOS INPUT NA PÁGINA:")
-                inputs = self.driver.find_elements(By.TAG_NAME, "input")
-                print(f"   Total: {len(inputs)}")
-                for i, inp in enumerate(inputs[:15]):
-                    try:
-                        id_attr = inp.get_attribute("id") or "sem-id"
-                        testid = inp.get_attribute("data-testid") or "sem-testid"
-                        placeholder = inp.get_attribute("placeholder") or "sem-placeholder"
-                        print(f"      {i+1}. ID='{id_attr}' | testid='{testid}' | placeholder='{placeholder}'")
-                    except:
-                        pass
-                
-                print("\n   ❌ FORMULÁRIO NÃO ENCONTRADO!")
-                print("   ⚠️ Você pressionou ENTER com os 3 campos VISÍVEIS na tela?")
+                print("\n❌ FORMULÁRIO NÃO ENCONTRADO!")
+                print("⚠️ Você pressionou ENTER com os 3 campos VISÍVEIS na tela?")
                 return False
             
-            print("   ✅ Formulário detectado!")
             self.delay_humano(0.1, 0.3)
             
             # CAMPO 1: Período de Apuração
-            print("   📅 Preenchendo Período de Apuração...")
             campo_data = self.driver.find_element(By.ID, "periodo_apuracao")
             campo_data.clear()
             self.delay_humano(0.1, 0.2)
             self.digitar_devagar(campo_data, PERIODO_APURACAO)
-            print(f"   ✅ Data: {PERIODO_APURACAO}")
             self.delay_humano(0.1, 0.3)
             
             # CAMPO 2: CNPJ
-            print("   🏢 Preenchendo CNPJ...")
             campo_cnpj = self.driver.find_element(By.ID, "insc_estabelecimento")
             campo_cnpj.clear()
             self.delay_humano(0.1, 0.2)
             self.digitar_devagar(campo_cnpj, CNPJ_EMPRESA)
-            print(f"   ✅ CNPJ: {CNPJ_EMPRESA}")
             self.delay_humano(0.1, 0.3)
             
             # CAMPO 3: CPF do Beneficiário
-            print(f"   👤 Preenchendo CPF do Beneficiário...")
             campo_cpf = self.driver.find_element(By.ID, "cpf_beneficiario")
             campo_cpf.clear()
             self.delay_humano(0.1, 0.2)
             self.digitar_devagar(campo_cpf, cpf_titular)
-            print(f"   ✅ CPF: {cpf_titular}")
             self.delay_humano(0.2, 0.4)
             
-            # BOTÃO: Continuar será clicado na função continuar_para_proxima_etapa()
-            print("   🔘 Botão 'Continuar' será clicado na próxima etapa...")
             self.delay_humano(0.1, 0.3)
             
-            print("\n✅ Dados iniciais preenchidos com sucesso!")
+            print("✅ Dados iniciais preenchidos")
             return True
             
         except Exception as e:
@@ -942,8 +903,6 @@ class AutomacaoEFD:
     def verificar_erros_primeira_etapa(self):
         """Verifica se há erros na primeira etapa (spans de aviso)"""
         try:
-            print("\n🔍 Verificando erros na primeira etapa...")
-            
             # Aguardar um pouco para a página estabilizar
             time.sleep(0.5)
             
@@ -1053,7 +1012,6 @@ class AutomacaoEFD:
                 )
                 return False
             else:
-                print("✅ Nenhum erro encontrado na primeira etapa")
                 return True
                 
         except Exception as e:
@@ -1063,7 +1021,6 @@ class AutomacaoEFD:
     def verificar_segunda_etapa_carregou(self):
         """Verifica se a segunda etapa carregou corretamente"""
         try:
-            print("\n🔍 Verificando se segunda etapa carregou...")
             
             # Aguardar um pouco para a página processar
             time.sleep(TEMPO_PROCESSAMENTO_PAGINA)
@@ -1102,7 +1059,6 @@ class AutomacaoEFD:
                     elemento = self.driver.find_element(metodo, seletor)
                     if elemento.is_displayed():
                         segunda_etapa_carregou = True
-                        print(f"✅ Segunda etapa carregou - elemento encontrado: {seletor}")
                         break
                 except:
                     continue
@@ -1116,7 +1072,7 @@ class AutomacaoEFD:
             if mensagens_sucesso:
                 for msg in mensagens_sucesso:
                     if msg.is_displayed():
-                        print(f"✅ Mensagem de sucesso: {msg.text}")
+                        pass
             
             return True
             
@@ -1137,7 +1093,6 @@ class AutomacaoEFD:
             # Clicar em Continuar
             botao_continuar = self.driver.find_element(By.CSS_SELECTOR, '[data-testid="botao_continuar"]')
             botao_continuar.click()
-            print("✅ Clicado em Continuar")
             
             # Aguardar um pouco para a página processar
             time.sleep(TEMPO_PROCESSAMENTO_PAGINA)
@@ -1161,7 +1116,6 @@ class AutomacaoEFD:
                 observacoes="Segunda etapa carregada com sucesso"
             )
             
-            print("✅ Segunda etapa carregada com sucesso!")
             return True
             
         except Exception as e:
@@ -1198,7 +1152,6 @@ class AutomacaoEFD:
             try:
                 botao_adicionar = self.driver.find_element(By.ID, "BotaoInclusaoDiv_ideDep")
                 botao_adicionar.click()
-                print("✅ Modal de dependente aberto")
             except Exception as e:
                 print(f"❌ Erro ao clicar no botão adicionar dependente: {e}")
                 self.salvar_dependente_processado(self.cpf_titular_atual, cpf_dependente, relacao_valor, agregado_outros, "erro")
@@ -1214,7 +1167,6 @@ class AutomacaoEFD:
                 campo_cpf = self.driver.find_element(By.ID, "cpf_dependente")
                 campo_cpf.clear()
                 self.digitar_devagar(campo_cpf, cpf_dependente)
-                print(f"✅ CPF do dependente preenchido: {cpf_dependente}")
             except Exception as e:
                 print(f"❌ Erro ao preencher CPF: {e}")
                 self.salvar_dependente_processado(self.cpf_titular_atual, cpf_dependente, relacao_valor, agregado_outros, "erro")
@@ -1224,7 +1176,6 @@ class AutomacaoEFD:
             try:
                 select_relacao = Select(self.driver.find_element(By.ID, "relacao_dependencia"))
                 select_relacao.select_by_value(relacao_valor)
-                print(f"✅ Relação selecionada: {relacao_valor}")
             except Exception as e:
                 print(f"❌ Erro ao selecionar relação: {e}")
                 self.salvar_dependente_processado(self.cpf_titular_atual, cpf_dependente, relacao_valor, agregado_outros, "erro")
@@ -1241,7 +1192,6 @@ class AutomacaoEFD:
                     campo_descricao = self.driver.find_element(By.ID, "descricao_dependencia")
                     campo_descricao.clear()
                     self.digitar_devagar(campo_descricao, agregado_outros)
-                    print(f"✅ Descrição da dependência preenchida: {agregado_outros}")
                 except Exception as e:
                     print(f"⚠️ Campo de descrição não encontrado: {e}")
             elif relacao_valor == "99":
@@ -1251,7 +1201,6 @@ class AutomacaoEFD:
             try:
                 botao_salvar = self.driver.find_element(By.CSS_SELECTOR, '[data-testid="botao_salvar_modal_ide_dep"]')
                 botao_salvar.click()
-                print("✅ Dependente adicionado")
                 
                 # Aguardar modal fechar
                 WebDriverWait(self.driver, TIMEOUT_MODAL).until(
@@ -1291,7 +1240,6 @@ class AutomacaoEFD:
             try:
                 botao_adicionar = self.driver.find_element(By.ID, "BotaoInclusaoDiv_ideOpSaude")
                 botao_adicionar.click()
-                print("✅ Modal de plano de saúde aberto")
             except Exception as e:
                 print(f"❌ Erro ao clicar no botão adicionar plano de saúde: {e}")
                 self.salvar_plano_processado(self.cpf_titular_atual, cnpj_operadora, valor_titular, "erro")
@@ -1307,7 +1255,6 @@ class AutomacaoEFD:
                 campo_cnpj = self.driver.find_element(By.ID, "cnpj_operadora")
                 campo_cnpj.clear()
                 self.digitar_devagar(campo_cnpj, cnpj_operadora)
-                print(f"✅ CNPJ da operadora preenchido: {cnpj_operadora}")
             except Exception as e:
                 print(f"❌ Erro ao preencher CNPJ: {e}")
                 self.salvar_plano_processado(self.cpf_titular_atual, cnpj_operadora, valor_titular, "erro")
@@ -1318,7 +1265,6 @@ class AutomacaoEFD:
                 campo_valor = self.driver.find_element(By.ID, "valor_saude")
                 campo_valor.clear()
                 self.digitar_devagar(campo_valor, valor_titular)
-                print(f"✅ Valor pago pelo titular preenchido: R$ {valor_titular}")
             except Exception as e:
                 print(f"❌ Erro ao preencher valor: {e}")
                 self.salvar_plano_processado(self.cpf_titular_atual, cnpj_operadora, valor_titular, "erro")
@@ -1328,7 +1274,6 @@ class AutomacaoEFD:
             try:
                 botao_salvar = self.driver.find_element(By.CSS_SELECTOR, '[data-testid="botao_salvar_modal_ide_op_saude"]')
                 botao_salvar.click()
-                print("✅ Plano de saúde adicionado")
                 
                 # Aguardar modal fechar
                 WebDriverWait(self.driver, TIMEOUT_MODAL).until(
@@ -1363,7 +1308,6 @@ class AutomacaoEFD:
             try:
                 botao_adicionar = self.driver.find_element(By.ID, "BotaoInclusaoDiv_infoDependPl_0")
                 botao_adicionar.click()
-                print("✅ Modal de informações dos dependentes aberto")
             except Exception as e:
                 print(f"❌ Erro ao clicar no botão adicionar informações: {e}")
                 return False
@@ -1377,7 +1321,6 @@ class AutomacaoEFD:
             try:
                 select_dependente = Select(self.driver.find_element(By.ID, "c_p_f_do_dependente"))
                 select_dependente.select_by_value(cpf_dependente)
-                print(f"✅ Dependente selecionado: {cpf_dependente}")
             except Exception as e:
                 print(f"❌ Erro ao selecionar dependente: {e}")
                 return False
@@ -1387,7 +1330,6 @@ class AutomacaoEFD:
                 campo_valor = self.driver.find_element(By.ID, "valor_saude_plano")
                 campo_valor.clear()
                 self.digitar_devagar(campo_valor, valor_dependente)
-                print(f"✅ Valor pago pelo dependente preenchido: R$ {valor_dependente}")
             except Exception as e:
                 print(f"❌ Erro ao preencher valor: {e}")
                 return False
@@ -1396,7 +1338,6 @@ class AutomacaoEFD:
             try:
                 botao_salvar = self.driver.find_element(By.CSS_SELECTOR, '[data-testid="botao_salvar_modal_info_depend_pl"]')
                 botao_salvar.click()
-                print("✅ Informação do dependente adicionada")
                 
                 # Aguardar modal fechar
                 WebDriverWait(self.driver, TIMEOUT_MODAL).until(
@@ -1415,7 +1356,6 @@ class AutomacaoEFD:
     def enviar_declaracao(self):
         """Envia a declaração usando o botão 'Concluir e enviar'"""
         try:
-            print("📤 Enviando declaração...")
             time.sleep(TEMPO_ANTES_ENVIO)
             wait = WebDriverWait(self.driver, TIMEOUT_WEBDRIVER)
             
@@ -1424,25 +1364,20 @@ class AutomacaoEFD:
                 botao_enviar = wait.until(
                     EC.element_to_be_clickable((By.CSS_SELECTOR, '[data-testid="botao_concluir_enviar"]'))
                 )
-                print("✅ Botão encontrado pelo data-testid")
             except:
                 # Fallback: tentar localizar pelo texto do botão
-                print("⚠️ Tentando localizar pelo texto...")
                 botao_enviar = wait.until(
                     EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Concluir e enviar')]"))
                 )
-                print("✅ Botão encontrado pelo texto")
             
             # Scroll até o botão para garantir visibilidade
             self.driver.execute_script("arguments[0].scrollIntoView(true);", botao_enviar)
             time.sleep(TEMPO_APOS_SCROLL)
             
             # Clicar no botão
-            print("🖱️ Clicando no botão 'Concluir e enviar'...")
             botao_enviar.click()
             
-            print("✅ Declaração enviada com sucesso!")
-            print("⏳ Aguardando página de confirmação/assinatura...")
+            print("✅ Declaração enviada")
             
             # Aguardar a próxima página carregar
             time.sleep(TEMPO_APOS_ENVIO)
@@ -1457,7 +1392,6 @@ class AutomacaoEFD:
     def aguardar_alerta_sucesso_assinatura(self):
         """Aguarda automaticamente o alerta de sucesso da assinatura eletrônica"""
         try:
-            print("⏳ Aguardando confirmação...")
             
             wait = WebDriverWait(self.driver, TIMEOUT_ALERTA_SUCESSO)
             
@@ -1467,7 +1401,6 @@ class AutomacaoEFD:
                     EC.presence_of_element_located((By.CSS_SELECTOR, '[data-testid="mensagem_descricao_0"]'))
                 )
                 if "ms7001" in alerta.text.lower() and "evento recebido com sucesso" in alerta.text.lower():
-                    print("✅ Assinatura concluída!")
                     return True
                     
             except:
@@ -1478,7 +1411,6 @@ class AutomacaoEFD:
                     if alerta.is_displayed():
                         texto_alerta = alerta.text
                         if "ms7001" in texto_alerta.lower() and "evento recebido com sucesso" in texto_alerta.lower():
-                            print("✅ Assinatura concluída!")
                             return True
                         
                 except:
@@ -1487,7 +1419,6 @@ class AutomacaoEFD:
                             EC.presence_of_element_located((By.XPATH, "//*[contains(text(), 'MS7001 - Evento recebido com sucesso')]"))
                         )
                         if alerta.is_displayed():
-                            print("✅ Assinatura concluída!")
                             return True
                         
                     except:
@@ -1497,13 +1428,11 @@ class AutomacaoEFD:
                         if componente_mensagem.is_displayed():
                             texto_componente = componente_mensagem.text
                             if "sucesso" in texto_componente.lower() and "ms7001" in texto_componente.lower():
-                                print("✅ Assinatura concluída!")
                                 return True
             
             return False
             
         except Exception as e:
-            print("⚠️ Confirmação não detectada - continuando...")
             return False
     
     def realizar_assinatura_automatica(self, metodo_assinatura=1):
@@ -1890,7 +1819,6 @@ class AutomacaoEFD:
     def clicar_proximo_cpf(self):
         """Clica no botão 'Incluir novo pagamento' para ir ao próximo CPF"""
         try:
-            print("➡️ Próximo CPF...")
             time.sleep(TEMPO_ANTES_PROXIMO_CPF)
             wait = WebDriverWait(self.driver, TIMEOUT_PROXIMO_CPF)
             
@@ -1899,18 +1827,14 @@ class AutomacaoEFD:
                 botao_proximo = wait.until(
                     EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Incluir novo pagamento')]"))
                 )
-                print("✅ Botão encontrado pelo texto")
             except:
                 try:
                     # Método 2: Tentar localizar pela classe + texto
-                    print("⚠️ Tentando localizar pela classe e texto...")
                     botao_proximo = wait.until(
                         EC.element_to_be_clickable((By.XPATH, "//button[@class='button' and contains(text(), 'Incluir novo pagamento')]"))
                     )
-                    print("✅ Botão encontrado pela classe + texto")
                 except:
                     # Método 3: Tentar localizar apenas pela classe e verificar texto
-                    print("⚠️ Tentando localizar apenas pela classe...")
                     botoes = self.driver.find_elements(By.CSS_SELECTOR, "button.button")
                     botao_proximo = None
                     
@@ -1919,22 +1843,15 @@ class AutomacaoEFD:
                             botao_proximo = botao
                             break
                     
-                    if botao_proximo:
-                        print("✅ Botão encontrado pela classe com verificação de texto")
-                    else:
+                    if not botao_proximo:
                         raise Exception("Botão não encontrado por nenhum método")
             
             # Scroll até o botão para garantir visibilidade
-            print("📜 Fazendo scroll até o botão...")
             self.driver.execute_script("arguments[0].scrollIntoView(true);", botao_proximo)
             time.sleep(0.2)  # Reduzido de TEMPO_APOS_SCROLL (0.5s)
             
             # Clicar no botão
-            print("🖱️ Clicando no botão 'Incluir novo pagamento'...")
             botao_proximo.click()
-            
-            print("✅ Botão 'Incluir novo pagamento' clicado com sucesso!")
-            print("⏳ Aguardando redirecionamento para próximo formulário...")
             
             # Aguardar a próxima página carregar
             time.sleep(TEMPO_APOS_PROXIMO_CPF)
@@ -2334,31 +2251,16 @@ class AutomacaoEFD:
                     time.sleep(TEMPO_SCRIPT_VERIFICACAO)
             else:
                 # Modo automático - sem verificação manual
-                print(f"\n{'='*60}")
-                print("🚀 MODO AUTOMÁTICO ATIVADO")
-                print(f"{'='*60}")
-                print("⚡ Prosseguindo automaticamente para envio da declaração...")
-                print("   ✅ Dados iniciais processados")
-                print("   ✅ Dependentes processados (se houver)")
-                print("   ✅ Planos de saúde processados (se houver)")
-                print("   ✅ Informações dos dependentes processadas (se houver)")
-                print(f"\n⏳ Aguardando {TEMPO_MODO_AUTOMATICO}s antes do envio...")
                 time.sleep(TEMPO_MODO_AUTOMATICO)
             
             # ETAPA FINAL: Enviar declaração
-            print(f"\n{'='*60}")
-            print("📤 ENVIANDO DECLARAÇÃO")
-            print(f"{'='*60}")
-            
             if self.enviar_declaracao():
-                print("✅ Declaração enviada com sucesso!")
                 
                 # Executar assinatura eletrônica automática
                 assinatura_sucesso = self.realizar_assinatura_automatica(self.metodo_assinatura)
                 
                 if assinatura_sucesso:
                     # Aguardar um pouco antes de verificar a confirmação
-                    print("⏳ Aguardando processamento da assinatura...")
                     time.sleep(3)
                     
                     # Aguardar automaticamente pelo alerta de sucesso
@@ -2375,12 +2277,8 @@ class AutomacaoEFD:
                         )
                         
                         # Próximo passo: clicar no botão próximo CPF
-                        print(f"\n{'='*60}")
-                        print("➡️ PRÓXIMO CPF")
-                        print(f"{'='*60}")
                         
                         if self.clicar_proximo_cpf():
-                            print("✅ Botão próximo CPF clicado com sucesso!")
                             return "sucesso"
                         else:
                             print("❌ Erro ao clicar no botão próximo CPF")
