@@ -28,18 +28,18 @@
 
 ### Windows
 ```bash
-# Execução rápida
+# Execução rápida (recomendado)
 .\executar.bat
 
-# Ou passo a passo
-.\ativar_venv.bat
+# Ou manualmente
+venv\Scripts\activate
 python automacao_efd.py
 ```
 
 ### Linux/Mac
 ```bash
-chmod +x ativar_venv.sh
-./ativar_venv.sh
+# Execução rápida
+source venv/bin/activate
 python automacao_efd.py
 ```
 
@@ -173,8 +173,8 @@ rpa-dirf/
 ├── config.py               # Configurações
 ├── dados.xlsx              # Planilha com dados
 ├── requirements.txt        # Dependências
-├── executar.bat           # Script Windows
-└── gerenciar_db.bat       # Gerenciador Windows
+├── executar.bat           # Atalho Windows (opcional)
+└── gerenciar_db.bat       # Atalho Windows (opcional)
 ```
 
 
