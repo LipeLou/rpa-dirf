@@ -380,7 +380,7 @@ class GerenciadorCheckpoint:
             
             if opcao == "1":
                 confirmar = input("⚠️ Tem certeza que quer limpar TUDO? (digite 'SIM' para confirmar): ")
-                if confirmar == "SIM":
+                if confirmar.strip().upper() == "SIM":
                     conn = self.conectar_banco()
                     if conn:
                         cursor = conn.cursor()
@@ -732,7 +732,7 @@ class GerenciadorCheckpoint:
             novo_indice = numero_grupo - 1
             
             confirmar = input(f"⚠️ Definir checkpoint para o grupo {numero_grupo}? (digite 'SIM'): ")
-            if confirmar != "SIM":
+            if confirmar.strip().upper() != "SIM":
                 print("❌ Operação cancelada")
                 return
             
@@ -800,7 +800,7 @@ class GerenciadorCheckpoint:
                 if cpf_alvo not in cpfs_excel:
                     print(f"⚠️ CPF {cpf_alvo} não encontrado como titular no Excel")
                     confirmar_mesmo_assim = input("Continuar mesmo assim? (digite 'SIM'): ")
-                    if confirmar_mesmo_assim != "SIM":
+                    if confirmar_mesmo_assim.strip().upper() != "SIM":
                         return
                 
                 # Encontrar índice do grupo
@@ -841,7 +841,7 @@ class GerenciadorCheckpoint:
                     print(f"✅ CPF encontrado no grupo {indice_encontrado + 1} (índice {indice_encontrado})")
                     
                     confirmar = input(f"⚠️ Definir checkpoint para este CPF/grupo? (digite 'SIM'): ")
-                    if confirmar != "SIM":
+                    if confirmar.strip().upper() != "SIM":
                         print("❌ Operação cancelada")
                         return
                     
