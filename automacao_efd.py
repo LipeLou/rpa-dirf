@@ -842,7 +842,7 @@ class AutomacaoEFD:
             iframes = self.driver.find_elements(By.TAG_NAME, "iframe")
             
             # Se tiver iframe, entrar nele
-            if len(iframes) > 0:
+            if iframes:
                 self.driver.switch_to.frame(0)
             
             # Tentar encontrar por múltiplos métodos
@@ -1066,13 +1066,6 @@ class AutomacaoEFD:
             if not segunda_etapa_carregou:
                 print("❌ Segunda etapa não carregou - elementos não encontrados")
                 return False
-            
-            # Verificar se há mensagens de sucesso ou confirmação
-            mensagens_sucesso = self.driver.find_elements(By.XPATH, "//*[contains(text(), 'sucesso') or contains(text(), 'Sucesso') or contains(text(), 'confirmado') or contains(text(), 'Confirmado')]")
-            if mensagens_sucesso:
-                for msg in mensagens_sucesso:
-                    if msg.is_displayed():
-                        pass
             
             return True
             
@@ -1790,31 +1783,6 @@ class AutomacaoEFD:
             print("💡 Escolha opção 1 (detectar posição) ou 2 (inserir manual)")
             return False
     
-    def detectar_elementos_tela(self):
-        """Detecta elementos na tela para auxiliar na assinatura"""
-        try:
-            print("🔍 Detectando elementos na tela...")
-            
-            # Obter tamanho da tela
-            largura_tela, altura_tela = pyautogui.size()
-            print(f"📏 Resolução da tela: {largura_tela}x{altura_tela}")
-            
-            # Capturar screenshot da tela atual
-            screenshot = pyautogui.screenshot()
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            nome_screenshot = f"screenshot_assinatura_{timestamp}.png"
-            screenshot.save(nome_screenshot)
-            print(f"📸 Screenshot salvo: {nome_screenshot}")
-            
-            return {
-                'largura': largura_tela,
-                'altura': altura_tela,
-                'screenshot': nome_screenshot
-            }
-            
-        except Exception as e:
-            print(f"❌ Erro ao detectar elementos: {e}")
-            return None
     
     def clicar_proximo_cpf(self):
         """Clica no botão 'Incluir novo pagamento' para ir ao próximo CPF"""
