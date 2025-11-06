@@ -42,23 +42,118 @@ pyautogui.PAUSE = PYAUTOGUI_PAUSE
 SISTEMA_OPERACIONAL = platform.system()
 
 # Mapeamento de dependências do Excel para valores do formulário
+# Baseado nas opções do formulário EFD-REINF da Receita Federal
 MAPEAMENTO_DEPENDENCIAS = {
     'TITULAR': None,  # Titular não é dependente
-    'ESPOSA': '1',    # Cônjuge
-    'ESPOSO': '1',    # Cônjuge
-    'COMPANHEIRO(A)': '2',  # Companheiro(a) com o(a) qual tenha filho ou viva há mais de 5 (cinco) anos ou possua declaração de união estável
+    
+    # Código 1 - Cônjuge
+    'ESPOSA': '1',
+    'ESPOSO': '1',
+    'CONJUGE': '1',
+    'CÔNJUGE': '1',
+    'CONJUGUE': '1',
+    
+    # Código 2 - Companheiro(a) com filho ou união estável
+    'COMPANHEIRO(A)': '2',
     'COMPANHEIRO': '2',
     'COMPANHEIRA': '2',
-    'FILHA': '3',     # Filho(a) ou enteado(a)
+    'UNIAO ESTAVEL': '2',
+    'UNIÃO ESTÁVEL': '2',
+    
+    # Código 3 - Filho(a) ou enteado(a)
     'FILHO': '3',
-    'MAE': '9',       # Pais, avós e bisavós
-    'MÃE': '9',
+    'FILHA': '3',
+    'ENTEADO': '3',
+    'ENTEADA': '3',
+    'FILHO(A)': '3',
+    'ENTEADO(A)': '3',
+    
+    # Código 6 - Irmão(ã), neto(a) ou bisneto(a) sem arrimo dos pais
+    'IRMAO': '6',
+    'IRMÃO': '6',
+    'IRMA': '6',
+    'IRMÃ': '6',
+    'IRMAO(A)': '6',
+    'IRMÃO(Ã)': '6',
+    'NETO': '6',
+    'NETA': '6',
+    'NETO(A)': '6',
+    'BISNETO': '6',
+    'BISNETA': '6',
+    'BISNETO(A)': '6',
+    
+    # Código 9 - Pais, avós e bisavós
     'PAI': '9',
-    'AGREGADO': '99', # Agregado/Outros
+    'MAE': '9',
+    'MÃE': '9',
+    'MAMAE': '9',
+    'MAMÃE': '9',
+    'AVO': '9',
+    'AVÔ': '9',
+    'AVO PATERNO': '9',
+    'AVÔ PATERNO': '9',
+    'AVO MATERNO': '9',
+    'AVÔ MATERNO': '9',
+    'AVO PATERNA': '9',
+    'AVÓ PATERNA': '9',
+    'AVO MATERNA': '9',
+    'AVÓ MATERNA': '9',
+    'BISAVO': '9',
+    'BISAVÔ': '9',
+    'BISAVO PATERNO': '9',
+    'BISAVÔ PATERNO': '9',
+    'BISAVO MATERNO': '9',
+    'BISAVÔ MATERNO': '9',
+    'BISAVO PATERNA': '9',
+    'BISAVÓ PATERNA': '9',
+    'BISAVO MATERNA': '9',
+    'BISAVÓ MATERNA': '9',
+    
+    # Código 10 - Menor pobre do qual detenha a guarda judicial
+    'MENOR POBRE': '10',
+    'GUARDA JUDICIAL': '10',
+    
+    # Código 11 - Pessoa absolutamente incapaz, da qual seja tutor ou curador
+    'TUTOR': '11',
+    'TUTORA': '11',
+    'CURADOR': '11',
+    'CURADORA': '11',
+    'TUTELADO': '11',
+    'TUTELADA': '11',
+    'CURATELADO': '11',
+    'CURATELADA': '11',
+    'PESSOA INCAPAZ': '11',
+    
+    # Código 12 - Ex-cônjuge
+    'EX ESPOSA': '12',
+    'EX ESPOSO': '12',
+    'EX CONJUGE': '12',
+    'EX CÔNJUGE': '12',
+    'EX CONJUGUE': '12',
+    'EX-ESPOSA': '12',
+    'EX-ESPOSO': '12',
+    'EX-CONJUGE': '12',
+    'EX-CÔNJUGE': '12',
+    'EX-CONJUGUE': '12',
+    
+    # Código 99 - Agregado/Outros
+    'AGREGADO': '99',
     'OUTRA DEPENDENCIA': '99',
     'OUTRA DEPENDÊNCIA': '99',
+    'OUTROS': '99',
+    'OUTRAS': '99',
     'SOGRO': '99',
-    'SOGRA': '99'
+    'SOGRA': '99',
+    'GENRO': '99',
+    'NORA': '99',
+    'CUNHADO': '99',
+    'CUNHADA': '99',
+    'TIO': '99',
+    'TIA': '99',
+    'SOBRINHO': '99',
+    'SOBRINHA': '99',
+    'PRIMO': '99',
+    'PRIMA': '99'
 }
 
 # ============================================================

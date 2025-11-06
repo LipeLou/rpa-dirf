@@ -60,13 +60,18 @@ python automacao_efd.py
 
 ## ⚙️ Configuração
 
-Edite o `config.py`:
+### Configurações Básicas (`config.py`)
+
+Edite o `config.py` para configurar os dados da empresa e comportamento:
 
 ```python
 # Dados da empresa
 PERIODO_APURACAO = "00/0000"
 CNPJ_EMPRESA = "00.000.000/0000-00"
 CNPJ_OPERADORA_PADRAO = "00.000.000/0000-00"
+
+# Planilha Excel
+PLANILHA = "MÊS - ANO"  # Nome da aba no Excel
 
 # Comportamento
 VERIFICACAO_MANUAL_PADRAO = False    # True = pausa para revisar
@@ -93,10 +98,51 @@ Sequência: Click(x,y) + Enter
 
 **Arquivo:** `dados.xlsx` **| Aba:** Configurável em `config.py` (variável `PLANILHA`)
 
+### Estrutura da Planilha
+
+A planilha deve conter as seguintes colunas:
+
 | NOME | CPF | DEPENDENCIA | VALOR |
 |------|-----|-------------|-------|
 | João Silva | 000.000.000-00 | TITULAR | 150,00 |
 | Maria Silva | 111.111.111-11 | ESPOSA | 150,00 |
+
+**Colunas obrigatórias:**
+- `NOME`: Nome completo da pessoa
+- `CPF`: CPF no formato 000.000.000-00
+- `DEPENDENCIA`: Tipo de dependência (veja mapeamento abaixo)
+- `VALOR`: Valor total pago
+
+**Observações:**
+- A primeira linha pode ser um cabeçalho (será ignorada com `skiprows=1`)
+- Cada grupo deve começar com um `TITULAR`
+- Dependentes devem estar logo após o titular correspondente
+- Valores zero ou nulos são automaticamente ignorados (dependentes sem plano ativo)
+
+### 🔗 Mapeamento de Dependências
+
+O sistema mapeia automaticamente os valores da coluna `DEPENDENCIA` da planilha Excel para os códigos do formulário da Receita Federal. O mapeamento está definido no arquivo `automacao_efd.py` na constante `MAPEAMENTO_DEPENDENCIAS`.
+
+#### Valores Padrão do Mapeamento
+
+| Dependência no Excel | Código | Descrição |
+|----------------------|--------|-----------|
+| `TITULAR` | `None` | Titular não é dependente |
+| `ESPOSA` / `ESPOSO` / `CONJUGE` | `1` | Cônjuge |
+| `COMPANHEIRO(A)` / `COMPANHEIRO` / `COMPANHEIRA` / `UNIAO ESTAVEL` | `2` | Companheiro(a) com filho ou união estável |
+| `FILHO` / `FILHA` / `ENTEADO` / `ENTEADA` | `3` | Filho(a) ou enteado(a) |
+| `IRMAO` / `IRMA` / `NETO` / `NETA` / `BISNETO` / `BISNETA` | `6` | Irmão(ã), neto(a) ou bisneto(a) sem arrimo dos pais |
+| `PAI` / `MAE` / `MÃE` / `AVO` / `AVÔ` / `BISAVO` / `BISAVÔ` | `9` | Pais, avós e bisavós |
+| `MENOR POBRE` / `GUARDA JUDICIAL` | `10` | Menor pobre do qual detenha a guarda judicial |
+| `TUTOR` / `TUTORA` / `CURADOR` / `CURADORA` | `11` | Pessoa absolutamente incapaz, da qual seja tutor ou curador |
+| `EX ESPOSA` / `EX ESPOSO` / `EX CONJUGE` | `12` | Ex-cônjuge |
+| `AGREGADO` / `OUTRA DEPENDENCIA` / `SOGRO` / `SOGRA` / `OUTROS` | `99` | Agregado/Outros |
+
+**Observações importantes:**
+- O sistema faz busca **case-insensitive** (não diferencia maiúsculas/minúsculas)
+- Se uma dependência não for encontrada, o sistema usa automaticamente `'99'` (Agregado/Outros)
+- Você pode usar variações do mesmo tipo (ex: `'MAE'`, `'MÃE'`) - todas serão mapeadas para o mesmo código
+- O mapeamento já está completo com todas as opções do formulário da Receita Federal
 
 
 ## 📊 Gerenciar Progresso
