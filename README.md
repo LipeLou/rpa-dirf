@@ -91,7 +91,7 @@ Sequência: Click(x,y) + Enter
 
 ## 📋 Formato da Planilha
 
-**Arquivo:** `dados.xlsx` **| Aba:** `MÊS 2025` (configurável em `config.py`)
+**Arquivo:** `dados.xlsx` **| Aba:** Configurável em `config.py` (variável `PLANILHA`)
 
 | NOME | CPF | DEPENDENCIA | VALOR |
 |------|-----|-------------|-------|

@@ -300,14 +300,6 @@ class GerenciadorCheckpoint:
         except Exception as e:
             print(f"❌ Erro ao ver estatísticas: {e}")
     
-    def verificar_tabela_existe(self, cursor, tabela):
-        """Verifica se uma tabela existe no banco"""
-        cursor.execute("""
-            SELECT name FROM sqlite_master 
-            WHERE type='table' AND name=?
-        """, (tabela,))
-        return cursor.fetchone() is not None
-    
     def criar_tabelas_se_nao_existirem(self, cursor):
         """Cria todas as tabelas necessárias se não existirem"""
         tabelas = [
@@ -648,7 +640,12 @@ class GerenciadorCheckpoint:
         """Lista os grupos disponíveis no Excel"""
         try:
             arquivo_excel = 'dados.xlsx'
-            planilha = 'MAR 2025'
+            # Usar planilha do config.py
+            try:
+                from config import PLANILHA
+                planilha = PLANILHA
+            except ImportError:
+                planilha = 'MAR 2025'  # Fallback
             
             if not os.path.exists(arquivo_excel):
                 print(f"❌ Arquivo {arquivo_excel} não encontrado")
@@ -774,7 +771,12 @@ class GerenciadorCheckpoint:
             
             # Mostrar CPFs disponíveis
             arquivo_excel = 'dados.xlsx'
-            planilha = 'MAR 2025'
+            # Usar planilha do config.py
+            try:
+                from config import PLANILHA
+                planilha = PLANILHA
+            except ImportError:
+                planilha = 'MAR 2025'  # Fallback
             
             if os.path.exists(arquivo_excel):
                 dados = pd.read_excel(arquivo_excel, sheet_name=planilha, skiprows=1)

@@ -53,8 +53,6 @@ MAPEAMENTO_DEPENDENCIAS = {
     'FILHO': '3',
     'MAE': '9',       # Pais, avós e bisavós
     'MÃE': '9',
-    'MAMAE': '9',
-    'MAMÃE': '9',
     'PAI': '9',
     'AGREGADO': '99', # Agregado/Outros
     'OUTRA DEPENDENCIA': '99',
@@ -182,43 +180,6 @@ class AutomacaoEFD:
         except (EOFError, KeyboardInterrupt):
             print(f"\n⚠️ Executando via script - aguardando {TEMPO_ESPERA_SCRIPT}s...")
             time.sleep(TEMPO_ESPERA_SCRIPT)
-    
-    def inspecionar_pagina(self):
-        """Permite inspecionar a página atual para debug"""
-        print("\n" + "="*60)
-        print("🔍 INSPEÇÃO DA PÁGINA")
-        print("="*60)
-        print(f"URL: {self.driver.current_url}")
-        print(f"Título: {self.driver.title}")
-        
-        # Listar todos os inputs
-        inputs = self.driver.find_elements(By.TAG_NAME, "input")
-        print(f"\n📋 CAMPOS INPUT ENCONTRADOS ({len(inputs)}):")
-        
-        for i, inp in enumerate(inputs):
-            try:
-                id_attr = inp.get_attribute("id") or "sem-id"
-                name_attr = inp.get_attribute("name") or "sem-name"
-                placeholder = inp.get_attribute("placeholder") or "sem-placeholder"
-                tipo = inp.get_attribute("type") or "text"
-                print(f"   {i+1:2d}. ID: '{id_attr}' | Name: '{name_attr}' | Placeholder: '{placeholder}' | Type: '{tipo}'")
-            except:
-                print(f"   {i+1:2d}. [erro ao ler atributos]")
-        
-        # Listar todos os botões
-        botoes = self.driver.find_elements(By.TAG_NAME, "button")
-        print(f"\n🔘 BOTÕES ENCONTRADOS ({len(botoes)}):")
-        
-        for i, btn in enumerate(botoes):
-            try:
-                texto = btn.text or "sem-texto"
-                id_attr = btn.get_attribute("id") or "sem-id"
-                tipo = btn.get_attribute("type") or "button"
-                print(f"   {i+1:2d}. Texto: '{texto}' | ID: '{id_attr}' | Type: '{tipo}'")
-            except:
-                print(f"   {i+1:2d}. [erro ao ler atributos]")
-        
-        print("="*60)
     
     def fechar(self):
         """Fecha o navegador"""
@@ -1490,133 +1451,6 @@ class AutomacaoEFD:
     def _assinatura_metodo_a(self):
         """Método A de assinatura - 3 teclas: Seta ↑, Seta ↑, Enter"""
         try:
-            print("⌨️ Método A: ↑ ↑ Enter")
-            
-            pyautogui.press('up')
-            time.sleep(ASSINATURA_METODO_A_INTERVALO)
-            pyautogui.press('up')
-            time.sleep(ASSINATURA_METODO_A_INTERVALO)
-            pyautogui.press('enter')
-            time.sleep(TEMPO_ESPERA_CLIQUE)
-            
-            return True
-            
-        except Exception as e:
-            print(f"❌ Erro no Método A: {e}")
-            return False
-    
-    def _assinatura_metodo_b(self):
-        """Método B de assinatura - Click do mouse + Enter"""
-        try:
-            if not self.coordenadas_mouse_metodo_b:
-                print("❌ Coordenadas não configuradas")
-                return False
-            
-            x, y = self.coordenadas_mouse_metodo_b
-            print(f"🖱️ Método B: Click ({x},{y}) + Enter")
-            
-            pyautogui.click(x, y)
-            time.sleep(ASSINATURA_METODO_B_INTERVALO)
-            pyautogui.press('enter')
-            time.sleep(TEMPO_ESPERA_CLIQUE)
-            
-            return True
-            
-        except Exception as e:
-            print(f"❌ Erro no Método B: {e}")
-            return False
-    
-    def configurar_coordenadas_metodo_b(self):
-        """Configura coordenadas do mouse para Método B de forma interativa"""
-        try:
-            print("\n🎯 CONFIGURAÇÃO DE COORDENADAS - MÉTODO B")
-            print("="*50)
-            print("Para o Método B, você precisa definir onde clicar na tela.")
-            print("Opções disponíveis:")
-            print("1️⃣ - Detectar posição atual do mouse")
-            print("2️⃣ - Inserir coordenadas manualmente") 
-            print("3️⃣ - Usar coordenadas salvas anteriormente")
-            
-            opcao = input("\nEscolha uma opção (1, 2 ou 3): ").strip()
-            
-            if opcao == "1":
-                return self._detectar_posicao_mouse()
-            elif opcao == "2":
-                return self._inserir_coordenadas_manual()
-            elif opcao == "3":
-                return self._usar_coordenadas_salvas()
-            else:
-                print("❌ Opção inválida! Digite apenas 1, 2 ou 3")
-                print("💡 Tente novamente com uma opção válida")
-                return False
-                
-        except Exception as e:
-            print(f"❌ Erro ao configurar coordenadas: {e}")
-            return False
-    
-    def _detectar_posicao_mouse(self):
-        """Verifica se há janelas modais ou popups abertos"""
-        try:
-            # Verificar modais comuns
-            modal_selectors = [
-                '.modal',
-                '.popup',
-                '.dialog',
-                '[role="dialog"]',
-                '[class*="modal"]',
-                '[class*="popup"]',
-                '.ui-dialog'
-            ]
-            
-            for selector in modal_selectors:
-                try:
-                    elementos = self.driver.find_elements(By.CSS_SELECTOR, selector)
-                    if elementos:
-                        for elemento in elementos:
-                            if elemento.is_displayed():
-                                print(f"🪟 Modal detectado: {selector}")
-                                return True
-                except:
-                    continue
-            
-            return False
-            
-        except Exception as e:
-            print(f"⚠️ Erro ao verificar janelas modais: {e}")
-            return False
-    
-    def _verificar_foco_navegador(self):
-        """Verifica se o navegador está em foco e tenta colocá-lo em foco se necessário"""
-        try:
-            print("🎯 Verificando foco do navegador...")
-            
-            # Tentar colocar o navegador em foco clicando nele
-            try:
-                # Pegar o título da janela atual do driver
-                titulo_janela = self.driver.title
-                print(f"📋 Título da janela: {titulo_janela}")
-                
-                # Maximizar a janela para garantir que esteja visível
-                self.driver.maximize_window()
-                
-                # Dar foco à janela do navegador
-                self.driver.switch_to.window(self.driver.current_window_handle)
-                
-                print("✅ Foco do navegador verificado e ajustado")
-                return True
-                
-            except Exception as e:
-                print(f"⚠️ Erro ao ajustar foco do navegador: {e}")
-                print("💡 Continuando sem ajuste de foco...")
-                return True
-                
-        except Exception as e:
-            print(f"❌ Erro na verificação de foco: {e}")
-            return True  # Continuar mesmo com erro
-    
-    def _assinatura_metodo_a(self):
-        """Método A de assinatura - 3 teclas: Seta ↑, Seta ↑, Enter"""
-        try:
             print("🔐 Executando Método A de assinatura...")
             print("📝 Sequência: Seta ↑ → Seta ↑ → Enter")
             
@@ -1625,15 +1459,15 @@ class AutomacaoEFD:
             # Sequência específica do Método A
             print("1️⃣ Pressionando Seta para Cima...")
             pyautogui.press('up')
-            time.sleep(TESTE_METODO_A_INTERVALO)
+            time.sleep(ASSINATURA_METODO_A_INTERVALO)
             
             print("2️⃣ Pressionando Seta para Cima...")
             pyautogui.press('up')
-            time.sleep(TESTE_METODO_A_INTERVALO)
+            time.sleep(ASSINATURA_METODO_A_INTERVALO)
             
             print("3️⃣ Pressionando Enter...")
             pyautogui.press('enter')
-            time.sleep(TESTE_METODO_B_INTERVALO_FINAL)
+            time.sleep(TEMPO_ESPERA_CLIQUE)
             
             print("✅ Método A concluído - sequência de teclas executada")
             return True
@@ -1662,11 +1496,11 @@ class AutomacaoEFD:
             # Sequência específica do Método B
             print("1️⃣ Clicando do mouse na posição configurada...")
             pyautogui.click(x, y)
-            time.sleep(TESTE_METODO_B_INTERVALO_CLICK)
+            time.sleep(ASSINATURA_METODO_B_INTERVALO)
             
             print("2️⃣ Pressionando Enter...")
             pyautogui.press('enter')
-            time.sleep(TESTE_METODO_B_INTERVALO_FINAL)
+            time.sleep(TEMPO_ESPERA_CLIQUE)
             
             print("✅ Método B concluído - click do mouse + Enter executados")
             return True
