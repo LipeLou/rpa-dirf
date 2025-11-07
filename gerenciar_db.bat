@@ -16,6 +16,3 @@ echo.
 
 echo Iniciando gerenciador...
 python gerenciar_checkpoint.py
-echo.
-
-pause

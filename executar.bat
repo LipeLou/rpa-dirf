@@ -11,5 +11,3 @@ echo.
 echo Iniciando automacao...
 echo.
 python automacao_efd.py
-echo.
-pause
