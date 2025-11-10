@@ -71,7 +71,7 @@ CNPJ_EMPRESA = "00.000.000/0000-00"
 CNPJ_OPERADORA_PADRAO = "00.000.000/0000-00"
 
 # Planilha Excel
-PLANILHA = "MÊS - ANO"  # Nome da aba no Excel
+PLANILHA = "MÊS - ANO"  # Nome da aba no Excel (sheet)
 
 # Comportamento
 VERIFICACAO_MANUAL_PADRAO = False    # True = pausa para revisar
@@ -100,21 +100,15 @@ Sequência: Click(x,y) + Enter
 
 ### Estrutura da Planilha
 
-A planilha deve conter as seguintes colunas:
+A planilha deve conter pelo menos as seguintes colunas:
 
 | NOME | CPF | DEPENDENCIA | VALOR |
 |------|-----|-------------|-------|
 | João Silva | 000.000.000-00 | TITULAR | 150,00 |
 | Maria Silva | 111.111.111-11 | ESPOSA | 150,00 |
 
-**Colunas obrigatórias:**
-- `NOME`: Nome completo da pessoa
-- `CPF`: CPF no formato 000.000.000-00
-- `DEPENDENCIA`: Tipo de dependência (veja mapeamento abaixo)
-- `VALOR`: Valor total pago
-
 **Observações:**
-- A primeira linha pode ser um cabeçalho (será ignorada com `skiprows=1`)
+- A primeira linha pode ser um cabeçalho (será ignorada com `skiprows=1`) 
 - Cada grupo deve começar com um `TITULAR`
 - Dependentes devem estar logo após o titular correspondente
 - Valores zero ou nulos são automaticamente ignorados (dependentes sem plano ativo)
@@ -168,8 +162,8 @@ python gerenciar_checkpoint.py
 
 ```
 rpa-dirf/
-├── automacao_efd.py        # Automação principal
-├── gerenciar_checkpoint.py # Gerenciador de progresso  
+├── main.py        # Automação principal
+├── manage.py # Gerenciador de progresso  
 ├── config.py               # Configurações
 ├── dados.xlsx              # Planilha com dados
 ├── requirements.txt        # Dependências
