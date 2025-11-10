@@ -46,7 +46,7 @@ python automacao_efd.py
 
 ## 🎯 Como Usar
 
-1. **Configure** os dados da empresa no `config.py`
+1. **Configure** os dados da empresa em `config.py` (use o `config-template.py` e substitua para **config.py**)
 2. **Adicione** a planilha `dados.xlsx` com os CPFs
 3. **Execute** o sistema
 4. **Faça login** manual no site da Receita (apenas uma vez)
