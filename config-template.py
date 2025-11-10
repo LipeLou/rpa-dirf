@@ -67,7 +67,7 @@ INTERVALO_ESPERA_MAX = 0.6
 # ============================================================
 
 # Versão do Chrome
-CHROME_VERSION = 141
+CHROME_VERSION = 142
 
 # Diretório do perfil Chrome para automação
 CHROME_PROFILE_DIR = 'chrome_efd'
