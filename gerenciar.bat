@@ -15,4 +15,4 @@ echo Ambiente virtual ativado!
 echo.
 
 echo Iniciando gerenciador...
-python gerenciar_checkpoint.py
+python manage.py

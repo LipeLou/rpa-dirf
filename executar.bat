@@ -10,4 +10,4 @@ echo Ambiente virtual ativado!
 echo.
 echo Iniciando automacao...
 echo.
-python automacao_efd.py
+python main.py
