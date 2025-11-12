@@ -4,5 +4,5 @@ pandas==2.3.3
 openpyxl==3.1.5
 undetected-chromedriver==3.5.5
 PyAutoGUI==0.9.54
-setuptools>=80.0.0
+setuptools==68.2.2
 
