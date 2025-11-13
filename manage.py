@@ -9,6 +9,7 @@ import sqlite3
 import pandas as pd
 from datetime import datetime
 import os
+import re
 
 # Importar configurações
 from config import BANCO_DADOS
@@ -778,34 +779,28 @@ class GerenciadorCheckpoint:
             except ImportError:
                 planilha = 'MAR 2025'  # Fallback
             
+            dados = None
             if os.path.exists(arquivo_excel):
-                dados = pd.read_excel(arquivo_excel, sheet_name=planilha, skiprows=1)
-                titulares = dados[dados['DEPENDENCIA'] == 'TITULAR']['CPF'].tolist()
-                
-                print("📋 Primeiros 10 CPFs titulares no Excel:")
-                for i, cpf in enumerate(titulares[:10]):
-                    print(f"   {i+1}. {cpf}")
-                if len(titulares) > 10:
-                    print(f"   ... e mais {len(titulares) - 10} CPFs")
-                print()
+                try:
+                    dados = pd.read_excel(arquivo_excel, sheet_name=planilha, skiprows=1)
+                except Exception as e:
+                    print(f"❌ Erro ao carregar Excel: {e}")
+                    return
+            else:
+                print(f"❌ Arquivo Excel '{arquivo_excel}' não encontrado")
+                return
             
             cpf_alvo = input("Digite o CPF titular para definir como próximo: ").strip()
             if not cpf_alvo:
                 print("❌ CPF não informado")
                 return
             
-            # Verificar se CPF existe no Excel
-            if os.path.exists(arquivo_excel):
-                dados = pd.read_excel(arquivo_excel, sheet_name=planilha, skiprows=1)
-                cpfs_excel = dados[dados['DEPENDENCIA'] == 'TITULAR']['CPF'].astype(str).tolist()
-                
-                if cpf_alvo not in cpfs_excel:
-                    print(f"⚠️ CPF {cpf_alvo} não encontrado como titular no Excel")
-                    confirmar_mesmo_assim = input("Continuar mesmo assim? (digite 'SIM'): ")
-                    if confirmar_mesmo_assim.strip().upper() != "SIM":
-                        return
-                
-                # Encontrar índice do grupo
+            # Encontrar índice do grupo
+            if dados is not None:
+                def normalizar_cpf(valor):
+                    return re.sub(r'\D', '', str(valor))
+
+                cpf_alvo_normalizado = normalizar_cpf(cpf_alvo)
                 grupos = []
                 grupo_atual = []
                 dados_limpos = dados.dropna(how='all')
@@ -835,7 +830,8 @@ class GerenciadorCheckpoint:
                 # Encontrar índice do CPF
                 indice_encontrado = None
                 for i, grupo in enumerate(grupos):
-                    if str(grupo[0]['CPF']) == cpf_alvo:  # grupo[0] é sempre o titular
+                    cpf_grupo = normalizar_cpf(grupo[0]['CPF'])  # grupo[0] é sempre o titular
+                    if cpf_grupo == cpf_alvo_normalizado:
                         indice_encontrado = i
                         break
                 
